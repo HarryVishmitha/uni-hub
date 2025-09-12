@@ -23,6 +23,10 @@ createInertiaApp({
                 <App {...props} />
             </ThemeProvider>
         );
+
+        queueMicrotask(() => {
+            try { el.removeAttribute('data-page'); } catch { }
+        });
     },
     progress: {
         color: '#4B5563',

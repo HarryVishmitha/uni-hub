@@ -34,6 +34,17 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'SITE' => [
+                'name'        => config('app.name', 'LMS'),
+                'baseUrl'     => config('app.url'), // e.g. https://lms.example.com
+                'titleFormat' => ':title — :site',  // used if page passes a title
+                'defaultTitle' => 'LMS — Learning that shapes the world',
+                'description' => 'Official Learning Management System.',
+                'keywords'    => ['LMS', 'University', 'Courses', 'Admissions'],
+                'ogImage'     => asset('images/og/default-og.png'),
+                'twitter'     => ['site' => '@your_handle'],
+                'indexable'   => app()->environment('production'),
+            ],
         ];
     }
 }
