@@ -22,9 +22,10 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                 ]}
             />
             <h1>Welcome to unihub</h1>
-            <p>
+            <p className="mt-6 text-gray-500 h-96"> 
                 This is a simple application built with Laravel and React.
             </p>
+            <div className="h-96 bg-blue-500">hi</div>
         </AppLayout>
     );
 }
