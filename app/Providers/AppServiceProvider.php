@@ -21,5 +21,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        
+        // Set up RBAC cache clearing
+        \App\Support\Rbac\RbacCache::clearOnModelEvents();
     }
 }
