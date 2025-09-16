@@ -3,8 +3,8 @@
 namespace App\Policies;
 
 use App\Models\Course;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class CoursePolicy
 {
@@ -13,7 +13,7 @@ class CoursePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view-courses');
+        return $user->canForOu('view-courses');
     }
 
     /**
@@ -21,7 +21,7 @@ class CoursePolicy
      */
     public function view(User $user, Course $course): bool
     {
-        return $user->hasPermissionTo('view-courses');
+        return $user->canForOu('view-courses', $this->resolveResourceOu($course));
     }
 
     /**
@@ -29,7 +29,7 @@ class CoursePolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('manage-courses');
+        return $user->canForOu('manage-courses');
     }
 
     /**
@@ -41,8 +41,7 @@ class CoursePolicy
             return true;
         }
 
-        return $user->hasPermissionTo('manage-courses') &&
-            $course->department->staff->contains($user);
+        return $user->canForOu('manage-courses', $this->resolveResourceOu($course));
     }
 
     /**
@@ -54,8 +53,7 @@ class CoursePolicy
             return true;
         }
 
-        return $user->hasPermissionTo('manage-courses') &&
-            $course->department->staff->contains($user);
+        return $user->canForOu('manage-courses', $this->resolveResourceOu($course));
     }
 
     /**
@@ -72,5 +70,12 @@ class CoursePolicy
     public function forceDelete(User $user, Course $course): bool
     {
         return false;
+    }
+
+    protected function resolveResourceOu(Course $course): ?OrganizationalUnit
+    {
+        return $course->ownerUnit
+            ?? $course->ouContext
+            ?? $course->department?->organizationalUnit;
     }
 }

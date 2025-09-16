@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\Unite\OuAccessResolver as OuAccessResolverContract;
+use App\Support\Unite\Config\ConfigResolver;
+use App\Support\Unite\OuAccessResolver;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,7 +15,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(OuAccessResolverContract::class, fn () => new OuAccessResolver());
+        $this->app->singleton(ConfigResolver::class, fn () => new ConfigResolver());
     }
 
     /**

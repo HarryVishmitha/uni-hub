@@ -3,8 +3,8 @@
 namespace App\Policies;
 
 use App\Models\Department;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class DepartmentPolicy
 {
@@ -13,7 +13,7 @@ class DepartmentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view-departments');
+        return $user->canForOu('view-departments');
     }
 
     /**
@@ -21,7 +21,7 @@ class DepartmentPolicy
      */
     public function view(User $user, Department $department): bool
     {
-        return $user->hasPermissionTo('view-departments');
+        return $user->canForOu('view-departments', $this->resolveResourceOu($department));
     }
 
     /**
@@ -29,7 +29,7 @@ class DepartmentPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('manage-departments');
+        return $user->canForOu('manage-departments');
     }
 
     /**
@@ -41,8 +41,7 @@ class DepartmentPolicy
             return true;
         }
 
-        return $user->hasPermissionTo('manage-departments') &&
-            $department->school->staff->contains($user);
+        return $user->canForOu('manage-departments', $this->resolveResourceOu($department));
     }
 
     /**
@@ -50,7 +49,11 @@ class DepartmentPolicy
      */
     public function delete(User $user, Department $department): bool
     {
-        return $user->hasRole('admin');
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $user->canForOu('manage-departments', $this->resolveResourceOu($department));
     }
 
     /**
@@ -67,5 +70,10 @@ class DepartmentPolicy
     public function forceDelete(User $user, Department $department): bool
     {
         return false;
+    }
+
+    protected function resolveResourceOu(Department $department): ?OrganizationalUnit
+    {
+        return $department->organizationalUnit ?? $department->ouContext;
     }
 }

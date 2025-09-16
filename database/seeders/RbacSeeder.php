@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ScopeMode;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -62,6 +64,16 @@ class RbacSeeder extends Seeder
             $role->givePermissionTo($rolePermissions);
         }
 
+        // Ensure root organizational unit exists
+        $rootOu = OrganizationalUnit::firstOrCreate(
+            ['code' => 'ROOT_UNIVERSITY'],
+            [
+                'type' => 'university',
+                'name' => 'Root University',
+                'status' => 'active',
+            ],
+        );
+
         // Create admin user
         $admin = User::create([
             'name' => 'Administrator',
@@ -69,6 +81,14 @@ class RbacSeeder extends Seeder
             'password' => bcrypt('admin'),
         ]);
 
-        $admin->assignRole('admin');
+        $adminRole = Role::where('name', 'admin')->first();
+        $admin->assignRole($adminRole);
+
+        $admin->appointments()->create([
+            'ou_id' => $rootOu->id,
+            'role_id' => $adminRole->id,
+            'scope_mode' => ScopeMode::GLOBAL,
+            'is_primary' => true,
+        ]);
     }
 }

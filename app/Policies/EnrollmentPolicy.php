@@ -3,8 +3,8 @@
 namespace App\Policies;
 
 use App\Models\Enrollment;
+use App\Models\OrganizationalUnit;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class EnrollmentPolicy
 {
@@ -13,7 +13,7 @@ class EnrollmentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('view-enrollments');
+        return $user->canForOu('view-enrollments');
     }
 
     /**
@@ -21,12 +21,15 @@ class EnrollmentPolicy
      */
     public function view(User $user, Enrollment $enrollment): bool
     {
-        if ($user->hasRole(['admin', 'staff'])) {
-            return $user->hasPermissionTo('view-enrollments');
+        if ($enrollment->user_id === $user->id) {
+            return true;
         }
 
-        return $user->hasPermissionTo('view-enrollments') &&
-            $enrollment->user_id === $user->id;
+        if ($user->hasRole('admin')) {
+            return $user->canForOu('view-enrollments', $this->resolveResourceOu($enrollment));
+        }
+
+        return $user->canForOu('view-enrollments', $this->resolveResourceOu($enrollment));
     }
 
     /**
@@ -34,7 +37,7 @@ class EnrollmentPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('manage-enrollments');
+        return $user->canForOu('manage-enrollments');
     }
 
     /**
@@ -46,8 +49,7 @@ class EnrollmentPolicy
             return true;
         }
 
-        return $user->hasPermissionTo('manage-enrollments') &&
-            $enrollment->course->department->staff->contains($user);
+        return $user->canForOu('manage-enrollments', $this->resolveResourceOu($enrollment));
     }
 
     /**
@@ -59,12 +61,11 @@ class EnrollmentPolicy
             return true;
         }
 
-        if ($user->hasRole('staff')) {
-            return $user->hasPermissionTo('manage-enrollments') &&
-                $enrollment->course->department->staff->contains($user);
+        if ($enrollment->user_id === $user->id) {
+            return true;
         }
 
-        return $enrollment->user_id === $user->id;
+        return $user->canForOu('manage-enrollments', $this->resolveResourceOu($enrollment));
     }
 
     /**
@@ -81,5 +82,13 @@ class EnrollmentPolicy
     public function forceDelete(User $user, Enrollment $enrollment): bool
     {
         return false;
+    }
+
+    protected function resolveResourceOu(Enrollment $enrollment): ?OrganizationalUnit
+    {
+        return $enrollment->organizationalUnit
+            ?? $enrollment->course?->deliveryUnit
+            ?? $enrollment->course?->ownerUnit
+            ?? $enrollment->ouContext;
     }
 }
