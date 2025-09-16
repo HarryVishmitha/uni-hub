@@ -10,6 +10,87 @@ A modern university management system built with Laravel and React using Inertia
 -   **Authentication**: Complete user authentication system
 -   **Real-time Updates**: Dynamic content updates
 
+## 🔐 Role-Based Access Control (RBAC)
+
+Uni-Hub ships with [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) to provide fine-grained role and permission management across the Laravel back end and the Inertia-driven React front end.
+
+-   **Route guards** live in `routes/web.php` and use `role` / `permission` middleware to separate the admin, staff, and student areas.
+-   **Policies** under `app/Policies` add contextual checks on top of permission middleware (for example, verifying a staff member belongs to the correct department before editing a course).
+-   **Front-end awareness** is provided by `app/Http/Middleware/HandleInertiaRequests`, which shares the authenticated user's roles and permissions with every React page via `usePage().props.auth`.
+-   **Automatic cache busting** is handled by `App\Support\Rbac\RbacCache`, ensuring permission changes take effect without any manual cache reset.
+
+### Default roles & permissions
+
+| Role    | Intended users       | Key permissions |
+|---------|----------------------|-----------------|
+| `admin` | Platform owners      | Full access to every permission |
+| `staff` | Department operators | `manage-*` permissions for courses, departments, enrollments plus read-only access to school data |
+| `student` | Learners             | Read-only access (`view-*`) to courses, departments, school, and their enrollments |
+
+Seed the default RBAC data (roles, permissions, and a default administrator) any time you set up a fresh database:
+
+```bash
+php artisan db:seed --class=RbacSeeder
+```
+
+### Managing access from the UI
+
+1. Sign in with an administrator account (the seeder above creates `admin@university.local` / password `admin`).
+2. Navigate to `/admin/roles`, `/admin/permissions`, or `/admin/users` to grant or revoke access directly from the web application.
+3. Changes are reflected immediately thanks to the RBAC cache listeners registered in `App\Providers\AppServiceProvider`.
+
+### Adding a new access-controlled feature
+
+1. **Create a permission** – add it through the Permissions screen or in a seeder/migration:
+
+    ```php
+    use Spatie\Permission\Models\Permission;
+
+    Permission::firstOrCreate(['name' => 'manage-library']);
+    ```
+
+2. **Assign the permission** – either via the Roles UI or in code:
+
+    ```php
+    use Spatie\Permission\Models\Role;
+
+    Role::findByName('staff')->givePermissionTo('manage-library');
+    ```
+
+3. **Protect the back end** – attach the permission middleware to your routes or controller:
+
+    ```php
+    Route::middleware(['auth', 'permission:manage-library'])
+        ->resource('library', LibraryController::class);
+    ```
+
+    For complex scenarios, add or update a policy in `app/Policies` and call `$this->authorize(...)` inside your controller methods (see `CoursePolicy` for reference).
+
+4. **Surface the feature in React** – gate menus and components by checking the injected permissions:
+
+    ```jsx
+    import { usePage } from '@inertiajs/react';
+
+    const permissions = usePage().props.auth.user?.permissions ?? [];
+    const canManageLibrary = permissions.includes('manage-library');
+
+    if (canManageLibrary) {
+        // Render links or components for the new module
+    }
+    ```
+
+5. **Reset caches when scripting changes** – run `php artisan permission:cache-reset` if you manipulated permissions directly in code or a tinker session outside of the HTTP layer.
+
+Following these steps keeps the database, middleware, policies, and front-end UI in sync whenever you introduce a new capability.
+
+## 🧭 Application Structure
+
+-   **Routing**: Public routes are defined in `routes/web.php`. Authenticated areas are grouped by role (`admin/*`, `staff/*`, and student read-only pages) with permission middleware applied per resource.
+-   **Controllers**: Feature logic lives in `app/Http/Controllers`, with dedicated namespaces for admin management (`Admin\UserController`, `Admin\RoleController`, `Admin\PermissionController`) and domain features (`CourseController`, `DepartmentController`, `EnrollmentController`).
+-   **Policies**: Domain-specific authorization rules are stored in `app/Policies`, enabling checks beyond simple permission flags (e.g., department ownership).
+-   **Front end**: Inertia pages and layouts reside in `resources/js`. `Layouts/AuthenticatedLayout.jsx` wires the top bar and theme switcher, while individual pages consume shared auth props to tailor the UI per role.
+-   **Shared data**: `app/Http/Middleware/HandleInertiaRequests` exposes site metadata plus role/permission information to every page, helping React components remain authorization-aware without additional API calls.
+
 ## 🎨 Theme System
 
 This application includes a comprehensive theme switching system that allows users to toggle between dark and light modes. The theme preference is automatically saved and restored across browser sessions.
