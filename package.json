@@ -24,6 +24,8 @@
     },
     "dependencies": {
         "@iconify/react": "^6.0.1",
-        "iconify": "^1.4.0"
+        "apexcharts": "^5.3.5",
+        "iconify": "^1.4.0",
+        "react-apexcharts": "^1.7.0"
     }
 }

@@ -39,6 +39,8 @@ class HandleInertiaRequests extends Middleware
                     'roles' => $request->user()->roles->pluck('name')->values()->all(),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name')->values()->all(),
                 ] : null,
+                'roles' => $request->user()?->roles()->pluck('name')->values()->all() ?? [],
+                'permissions' => $request->user()?->getAllPermissions()->pluck('name')->values()->all() ?? [],
             ],
             'branch' => fn () => $this->branchPayload($request),
             'SITE' => [
