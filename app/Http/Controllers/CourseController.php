@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
-use App\Models\Department;
-use App\Models\OrganizationalUnit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -38,22 +36,9 @@ class CourseController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'department_id' => 'required|exists:departments,id',
-            'owner_ou_id' => 'nullable|exists:organizational_units,id',
-            'delivery_ou_id' => 'nullable|exists:organizational_units,id',
-            'ou_context_id' => 'nullable|exists:organizational_units,id',
         ]);
 
-        $ownerUnit = $this->resolveOwnerUnit($request, $validated);
-        $deliveryUnit = $this->resolveDeliveryUnit($request, $validated, $ownerUnit);
-
-        Course::create([
-            ...$validated,
-            'owner_ou_id' => $ownerUnit?->id,
-            'delivery_ou_id' => $deliveryUnit?->id,
-            'ou_context_id' => $validated['ou_context_id']
-                ?? $deliveryUnit?->id
-                ?? $ownerUnit?->id,
-        ]);
+        Course::create($validated);
 
         return redirect()->route('courses.index');
     }
@@ -72,23 +57,9 @@ class CourseController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'department_id' => 'required|exists:departments,id',
-            'owner_ou_id' => 'nullable|exists:organizational_units,id',
-            'delivery_ou_id' => 'nullable|exists:organizational_units,id',
-            'ou_context_id' => 'nullable|exists:organizational_units,id',
         ]);
 
-        $ownerUnit = $this->resolveOwnerUnit($request, $validated, $course);
-        $deliveryUnit = $this->resolveDeliveryUnit($request, $validated, $ownerUnit ?? $course->ownerUnit);
-
-        $course->update([
-            ...$validated,
-            'owner_ou_id' => $ownerUnit?->id,
-            'delivery_ou_id' => $deliveryUnit?->id,
-            'ou_context_id' => $validated['ou_context_id']
-                ?? $course->ou_context_id
-                ?? $deliveryUnit?->id
-                ?? $ownerUnit?->id,
-        ]);
+        $course->update($validated);
 
         return redirect()->route('courses.index');
     }
@@ -99,29 +70,5 @@ class CourseController extends Controller
         
         $course->delete();
         return redirect()->route('courses.index');
-    }
-
-    protected function resolveOwnerUnit(Request $request, array $validated, ?Course $course = null): ?OrganizationalUnit
-    {
-        if ($request->filled('owner_ou_id')) {
-            return OrganizationalUnit::find($validated['owner_ou_id']);
-        }
-
-        if ($course?->ownerUnit) {
-            return $course->ownerUnit;
-        }
-
-        $department = Department::find($validated['department_id']);
-
-        return $department?->organizationalUnit;
-    }
-
-    protected function resolveDeliveryUnit(Request $request, array $validated, ?OrganizationalUnit $fallback = null): ?OrganizationalUnit
-    {
-        if ($request->filled('delivery_ou_id')) {
-            return OrganizationalUnit::find($validated['delivery_ou_id']);
-        }
-
-        return $fallback;
     }
 }

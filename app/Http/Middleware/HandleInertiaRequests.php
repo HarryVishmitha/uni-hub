@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -30,8 +29,6 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $scoped = $this->scopedShare($request->user());
-
         return [
             ...parent::share($request),
             'auth' => [
@@ -42,9 +39,6 @@ class HandleInertiaRequests extends Middleware
                     'roles' => $request->user()->roles->pluck('name'),
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                 ] : null,
-            ],
-            'unite' => [
-                'scoped' => $scoped,
             ],
             'SITE' => [
                 'name'        => config('app.name', 'LMS'),
@@ -57,23 +51,6 @@ class HandleInertiaRequests extends Middleware
                 'twitter'     => ['site' => '@your_handle'],
                 'indexable'   => app()->environment('production'),
             ],
-        ];
-    }
-
-    protected function scopedShare(?User $user): array
-    {
-        if (! $user) {
-            return [
-                'global' => false,
-                'unit_ids' => [],
-            ];
-        }
-
-        $scoped = $user->scopedUnitData();
-
-        return [
-            'global' => (bool) $scoped->get('global', false),
-            'unit_ids' => $scoped->get('unit_ids', collect())->values()->all(),
         ];
     }
 }

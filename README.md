@@ -83,41 +83,6 @@ php artisan db:seed --class=RbacSeeder
 
 Following these steps keeps the database, middleware, policies, and front-end UI in sync whenever you introduce a new capability.
 
-## 🏛 Unite OU & Scope Layer
-
-Unite brings location-awareness to the existing RBAC stack without changing how roles and permissions are registered. It layers organizational units (OUs), scoped appointments, and configuration cascades on top of Spatie so that “where does this apply?” becomes part of every authorization decision.
-
-### Organizational units
-
--   Table `organizational_units` models departments, branches, programs, etc. Each row tracks parentage (`parent_id` + materialized `path`), metadata, audit owners, and an `external_id` UUID.
--   `ou_presences` links a unit to another branch OU when departments operate cross-campus, with an activation window and capability hints.
--   Domain tables such as `departments`, `courses`, and `enrollments` now carry `ou_id` / `owner_ou_id` / `delivery_ou_id` columns, soft deletes, audit fields, and external UUIDs to keep provenance intact.
-
-### Scoped appointments
-
--   `appointments` connect a user ↔ OU ↔ role with a scope mode (`self`, `subtree`, `global`), primary flag, and temporal window.
--   Saving appointments automatically syncs the mapped Spatie role to the user and busts cached scope data.
--   `User::canForOu($permission, $ou)` delegates to the Unite resolver, which combines the user’s permissions with their scoped units to return a definitive allow/deny.
--   Caching is handled per user via `unite.cache.*` keys. Invalidate by touching appointments, role assignments, or OU structure; the cache version bumps automatically.
-
-### Resolver + observation mode
-
--   `App\Support\Unite\OuAccessResolver` wraps authorization decisions. It respects the `UNITE_ENFORCE` flag (default `false`) so you can run in “observation” mode while attaching OU context to data without blocking legacy flows.
--   Policies (`CoursePolicy`, `DepartmentPolicy`, `EnrollmentPolicy`) now route through Unite and pass the relevant OU (owner vs delivery) for every check.
--   Inertia shares `props.unite.scoped` so the React UI can filter navigation, dashboards, or forms by the current OU scope.
--   A lightweight Scope Inspector lives at `/admin/scope-inspector/{user}`, showing a user’s roles, appointments, and calculated unit set for debugging.
-
-### Configuration cascades
-
--   `config_overrides` stores OU-specific overrides (grading schemes, branding, etc.) with inheritance rules (`allow`|`block`).
--   `App\Support\Unite\Config\ConfigResolver` resolves the nearest value from the OU up to the root, and exposes `diff()` data for the future Config Diff Viewer.
-
-### Operational notes
-
--   Guard rails prevent deleting an OU with active children unless it’s archived, and the model ensures no OU can self-reference as its parent.
--   Controllers default OU assignment: departments auto-provision an OU (unless one is supplied) and courses/enrollments derive delivery scope from the department hierarchy. User management accepts an `appointments` payload to capture scope mode while keeping existing role syncing intact.
--   Cache knobs live in `config/unite.php`; set `UNITE_ENFORCE=true` once observation data looks healthy and you’re ready to enforce scopes.
-
 ## 🧭 Application Structure
 
 -   **Routing**: Public routes are defined in `routes/web.php`. Authenticated areas are grouped by role (`admin/*`, `staff/*`, and student read-only pages) with permission middleware applied per resource.
