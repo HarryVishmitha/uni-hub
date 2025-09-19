@@ -15,6 +15,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RbacSeeder::class,
+            DemoUniversitySeeder::class,
+            OrgTreeSeeder::class,
+            ProgramSeeder::class,
+            CurriculumSeeder::class,
+            BranchUserBackfillSeeder::class,
         ]);
     }
 }

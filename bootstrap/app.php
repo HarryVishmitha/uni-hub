@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'acts_on_branch' => \App\Http\Middleware\ActsOnBranch::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

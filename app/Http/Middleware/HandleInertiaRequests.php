@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'),
                 ] : null,
             ],
+            'branch' => fn () => $this->branchPayload($request),
             'SITE' => [
                 'name'        => config('app.name', 'LMS'),
                 'baseUrl'     => config('app.url'), // e.g. https://lms.example.com
@@ -51,6 +52,25 @@ class HandleInertiaRequests extends Middleware
                 'twitter'     => ['site' => '@your_handle'],
                 'indexable'   => app()->environment('production'),
             ],
+        ];
+    }
+
+    protected function branchPayload(Request $request): ?array
+    {
+        $branch = $request->attributes->get('activeBranch');
+
+        if (! $branch) {
+            return null;
+        }
+
+        return [
+            'id' => $branch->id,
+            'name' => $branch->name,
+            'code' => $branch->code,
+            'timezone' => $branch->timezone,
+            'theme_tokens' => $branch->theme_tokens,
+            'feature_flags' => $branch->feature_flags,
+            'is_active' => $branch->is_active,
         ];
     }
 }

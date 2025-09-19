@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\CurriculumController;
+use App\Http\Controllers\Admin\OrgUnitController;
+use App\Http\Controllers\Admin\ProgramController;
+use App\Http\Controllers\Admin\UniversityController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\{UserController, RoleController, PermissionController};
-use App\Http\Controllers\{CourseController, DepartmentController, EnrollmentController};
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -20,32 +23,29 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Admin routes
-    Route::middleware(['role:staff'])->prefix('admin')->name('admin.')->group(function () {
-        Route::resource('users', UserController::class);
-        Route::resource('roles', RoleController::class);
-        Route::resource('permissions', PermissionController::class);
-    });
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::middleware('role:super_admin')->group(function () {
+            Route::resource('universities', UniversityController::class)->only(['index', 'store', 'update', 'destroy']);
+        });
 
-    // Staff routes
-    Route::middleware(['role:staff|admin'])->prefix('staff')->name('staff.')->group(function () {
-        Route::resource('courses', CourseController::class)->middleware('permission:manage-courses');
-        Route::resource('departments', DepartmentController::class)->middleware('permission:manage-departments');
-        Route::resource('enrollments', EnrollmentController::class)->middleware('permission:manage-enrollments');
-    });
+        Route::middleware(['role:super_admin|branch_admin', 'acts_on_branch'])->group(function () {
+            Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
+        });
 
-    // Student routes (view only)
-    Route::middleware(['role:student|staff|admin'])->group(function () {
-        Route::get('/courses', [CourseController::class, 'index'])->name('courses.index')->middleware('permission:view-courses');
-        Route::get('/courses/{course}', [CourseController::class, 'show'])->name('courses.show')->middleware('permission:view-courses');
-        Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index')->middleware('permission:view-departments');
-        Route::get('/departments/{department}', [DepartmentController::class, 'show'])->name('departments.show')->middleware('permission:view-departments');
-        Route::get('/enrollments', [EnrollmentController::class, 'index'])->name('enrollments.index')->middleware('permission:view-enrollments');
+        Route::middleware(['role:super_admin|admin|branch_admin', 'acts_on_branch'])->group(function () {
+            Route::resource('org-units', OrgUnitController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::resource('programs', ProgramController::class)->only(['index', 'store', 'update', 'destroy']);
+
+            Route::resource('curricula', CurriculumController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::post('curricula/{curriculum}/requirements', [CurriculumController::class, 'storeRequirement'])->name('curricula.requirements.store');
+            Route::put('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'updateRequirement'])->name('curricula.requirements.update');
+            Route::delete('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'destroyRequirement'])->name('curricula.requirements.destroy');
+        });
     });
 });
 
