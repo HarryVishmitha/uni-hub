@@ -44,18 +44,56 @@ export default function AdminLayout({ title, header, children }) {
     }, []);
 
     // Demo nav: replace with your app links
-    const nav = useMemo(() => ([
-        { name: 'Overview', href: route('dashboard'), icon: 'lucide:layout-dashboard', perm: null },
-        { name: 'Universities', href: route().has('admin.universities.index') ? route('admin.universities.index') : '#', icon: 'lucide:buildings-2', perm: 'manage-universities' },
-        { name: 'Branches', href: route().has('admin.branches.index') ? route('admin.branches.index') : '#', icon: 'lucide:git-branch', perm: 'manage-branches' },
-        { name: 'Org Units', href: route().has('admin.org-units.index') ? route('admin.org-units.index') : '#', icon: 'lucide:network', perm: 'manage-org-units' },
-        { name: 'Programs', href: route().has('admin.programs.index') ? route('admin.programs.index') : '#', icon: 'lucide:notebook-tabs', perm: 'manage-programs' },
-        { name: 'Curricula', href: route().has('admin.curricula.index') ? route('admin.curricula.index') : '#', icon: 'lucide:list-checks', perm: 'manage-curricula' },
-        { name: 'Users', href: route().has('admin.users.index') ? route('admin.users.index') : '#', icon: 'lucide:users', perm: 'manage-users' },
-        { name: 'Settings', href: route().has('admin.settings.index') ? route('admin.settings.index') : '#', icon: 'lucide:settings-2', perm: 'manage-settings' },
-    ]), []);
+    const nav = useMemo(
+        () => [
+            {
+                name: 'Dashboard',
+                routeName: 'admin.dashboard',
+                icon: 'lucide:layout-dashboard',
+                perm: ['manage-branches', 'manage-org-units', 'manage-programs'],
+            },
+            {
+                name: 'Universities',
+                routeName: 'admin.universities.index',
+                icon: 'lucide:buildings-2',
+                perm: 'manage-universities',
+            },
+            {
+                name: 'Branches',
+                routeName: 'admin.branches.index',
+                icon: 'lucide:git-branch',
+                perm: ['manage-branches', 'view-branches'],
+            },
+            {
+                name: 'Org Units',
+                routeName: 'admin.org-units.index',
+                icon: 'lucide:network',
+                perm: ['manage-org-units', 'view-org-units'],
+            },
+            {
+                name: 'Programs',
+                routeName: 'admin.programs.index',
+                icon: 'lucide:notebook-tabs',
+                perm: ['manage-programs', 'view-programs'],
+            },
+            {
+                name: 'Curricula',
+                routeName: 'admin.curricula.index',
+                icon: 'lucide:list-checks',
+                perm: ['manage-curricula', 'view-curricula'],
+            },
+        ],
+        [],
+    );
 
-    const can = (perm) => !perm || permissions.includes(perm);
+    const can = (perm) => {
+        if (!perm) return true;
+        if (Array.isArray(perm)) {
+            return perm.some((rule) => permissions.includes(rule));
+        }
+
+        return permissions.includes(perm);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
@@ -193,10 +231,12 @@ function Sidebar({ nav, open, pinned, onClose, onPinToggle }) {
 }
 
 function NavItem({ item }) {
-    const isActive = route().current(item.href?.name || item.href);
+    const hasRoute = item.routeName ? route().has(item.routeName) : false;
+    const href = hasRoute ? route(item.routeName) : item.href ?? '#';
+    const isActive = item.routeName ? route().current(item.routeName) : false;
     return (
         <Link
-            href={item.href}
+            href={href}
             className={`group mx-2 my-1 flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-gray-100 dark:hover:bg-gray-800 ${isActive ? 'bg-gray-100 dark:bg-gray-800' : ''}`}
         >
             <Icon icon={item.icon} className="text-lg shrink-0" />

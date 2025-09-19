@@ -29,15 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::prefix('admin')->name('admin.')->group(function () {
-        Route::middleware('role:super_admin')->group(function () {
-            Route::resource('universities', UniversityController::class)->only(['index', 'store', 'update', 'destroy']);
-        });
-
-        Route::middleware(['role:super_admin|branch_admin', 'acts_on_branch'])->group(function () {
-            Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
-        });
-
         Route::middleware(['role:super_admin|admin|branch_admin', 'acts_on_branch'])->group(function () {
+            Route::get('/dashboard', fn () => Inertia::render('Admin/Dashboard'))->name('dashboard');
+            Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('org-units', OrgUnitController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('programs', ProgramController::class)->only(['index', 'store', 'update', 'destroy']);
 
@@ -46,6 +40,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'updateRequirement'])->name('curricula.requirements.update');
             Route::delete('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'destroyRequirement'])->name('curricula.requirements.destroy');
         });
+
+        Route::middleware('role:super_admin')->group(function () {
+            Route::resource('universities', UniversityController::class)->only(['index', 'store', 'update', 'destroy']);
+        });
+    });
+
+    Route::middleware(['role:front_office'])->prefix('front-office')->name('front_office.')->group(function () {
+        Route::get('/dashboard', fn () => Inertia::render('FrontOffice/Dashboard'))->name('dashboard');
+    });
+
+    Route::middleware(['role:lecturer'])->prefix('lecturer')->name('lecturer.')->group(function () {
+        Route::get('/dashboard', fn () => Inertia::render('Lecturer/Dashboard'))->name('dashboard');
+    });
+
+    Route::middleware(['role:lab_manager'])->prefix('lab-manager')->name('lab_manager.')->group(function () {
+        Route::get('/dashboard', fn () => Inertia::render('LabManager/Dashboard'))->name('dashboard');
+    });
+
+    Route::middleware(['role:student'])->prefix('student')->name('student.')->group(function () {
+        Route::get('/dashboard', fn () => Inertia::render('Student/Dashboard'))->name('dashboard');
     });
 });
 

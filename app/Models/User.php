@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\Route;
 
 class User extends Authenticatable
 {
@@ -56,5 +57,26 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super_admin');
+    }
+
+    public function preferredDashboardRoute(): string
+    {
+        $map = [
+            'super_admin' => 'admin.dashboard',
+            'admin' => 'admin.dashboard',
+            'branch_admin' => 'admin.dashboard',
+            'front_office' => 'front_office.dashboard',
+            'lecturer' => 'lecturer.dashboard',
+            'lab_manager' => 'lab_manager.dashboard',
+            'student' => 'student.dashboard',
+        ];
+
+        foreach ($map as $role => $routeName) {
+            if ($this->hasRole($role) && Route::has($routeName)) {
+                return $routeName;
+            }
+        }
+
+        return Route::has('dashboard') ? 'dashboard' : '/';
     }
 }
