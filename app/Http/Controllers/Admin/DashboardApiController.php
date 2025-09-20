@@ -3,16 +3,26 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Course;
+use App\Models\OrgUnit;
+use App\Models\Program;
 use App\Models\Term;
+use App\Models\University;
 use App\Models\User;
 use App\Services\Admin\DashboardMetricsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Controller for dashboard API endpoints
+ */
 class DashboardApiController extends Controller
 {
+    /**
+     * @param \App\Services\Admin\DashboardMetricsService $metricsService
+     */
     public function __construct(private readonly DashboardMetricsService $metricsService)
     {
     }
@@ -31,7 +41,7 @@ class DashboardApiController extends Controller
         $branchId = $this->resolveBranchId($request);
 
         $activities = Activity::query()
-            ->whereIn('log_name', ['term', 'course', 'course_outcome', 'course_prerequisite'])
+            ->whereIn('log_name', ['term', 'course', 'course_outcome', 'course_prerequisite', 'branch', 'org_unit', 'program', 'university'])
             ->latest()
             ->limit(50)
             ->with(['causer', 'subject'])
@@ -96,6 +106,22 @@ class DashboardApiController extends Controller
             return (int) $subject->branch_id === (int) $branchId;
         }
 
+        if ($subject instanceof Branch) {
+            return (int) $subject->id === (int) $branchId;
+        }
+
+        if ($subject instanceof OrgUnit) {
+            return (int) $subject->branch_id === (int) $branchId;
+        }
+
+        if ($subject instanceof Program) {
+            return (int) $subject->branch_id === (int) $branchId;
+        }
+
+        if ($subject instanceof University) {
+            return ! $branchId; // only visible when not filtering by branch
+        }
+
         if (method_exists($subject, 'course') && $subject->course) {
             return (int) $subject->course->branch_id === (int) $branchId;
         }
@@ -111,6 +137,10 @@ class DashboardApiController extends Controller
             'course' => 'Course',
             'course_outcome' => 'Course Outcome',
             'course_prerequisite' => 'Course Prerequisite',
+            'branch' => 'Branch',
+            'org_unit' => 'Org Unit',
+            'program' => 'Program',
+            'university' => 'University',
             default => 'Record',
         };
 
@@ -135,6 +165,10 @@ class DashboardApiController extends Controller
             'course' => 'lucide:book-open',
             'course_outcome' => 'lucide:target',
             'course_prerequisite' => 'lucide:git-branch',
+            'branch' => 'lucide:map-pin',
+            'org_unit' => 'lucide:layers',
+            'program' => 'lucide:graduation-cap',
+            'university' => 'lucide:building-2',
             default => 'lucide:activity',
         };
     }
@@ -146,6 +180,10 @@ class DashboardApiController extends Controller
             'course' => 'text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30',
             'course_outcome' => 'text-purple-500 bg-purple-100 dark:bg-purple-900/30',
             'course_prerequisite' => 'text-amber-500 bg-amber-100 dark:bg-amber-900/30',
+            'branch' => 'text-sky-500 bg-sky-100 dark:bg-sky-900/30',
+            'org_unit' => 'text-indigo-500 bg-indigo-100 dark:bg-indigo-900/30',
+            'program' => 'text-rose-500 bg-rose-100 dark:bg-rose-900/30',
+            'university' => 'text-gray-500 bg-gray-100 dark:bg-gray-800/60',
             default => 'text-gray-500 bg-gray-100 dark:bg-gray-800',
         };
     }
