@@ -96,6 +96,7 @@ export default function AdminLayout({ title, header, children, showHeaderThemeTo
 
             // Academic Management
             { type: 'header', name: 'Academic Management' },
+            { name: 'Terms', routeName: 'admin.terms.index', icon: 'lucide:calendar-clock', perm: ['manage-terms', 'view-terms'] },
             { name: 'Programs', routeName: 'admin.programs.index', icon: 'lucide:notebook-tabs', perm: ['manage-programs', 'view-programs'] },
             { name: 'Curricula', routeName: 'admin.curricula.index', icon: 'lucide:list-checks', perm: ['manage-curricula', 'view-curricula'] },
             { name: 'Courses', routeName: 'admin.courses.index', icon: 'lucide:book-open', perm: ['manage-courses', 'view-courses'] },

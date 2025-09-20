@@ -2,9 +2,14 @@
 
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CurriculumController;
+use App\Http\Controllers\Admin\DashboardApiController;
 use App\Http\Controllers\Admin\DemoController;
+use App\Http\Controllers\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Admin\CourseOutcomeController;
+use App\Http\Controllers\Admin\CoursePrerequisiteController;
 use App\Http\Controllers\Admin\OrgUnitController;
 use App\Http\Controllers\Admin\ProgramController;
+use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Admin\UniversityController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -40,6 +45,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('curricula/{curriculum}/requirements', [CurriculumController::class, 'storeRequirement'])->name('curricula.requirements.store');
             Route::put('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'updateRequirement'])->name('curricula.requirements.update');
             Route::delete('curricula/{curriculum}/requirements/{requirement}', [CurriculumController::class, 'destroyRequirement'])->name('curricula.requirements.destroy');
+
+            Route::prefix('api')->name('api.')->group(function () {
+                Route::get('metrics', [DashboardApiController::class, 'metrics'])->name('metrics');
+                Route::get('activities', [DashboardApiController::class, 'activities'])->name('activities');
+                Route::get('quick-actions', [DashboardApiController::class, 'quickActions'])->name('quick-actions');
+            });
+
+            Route::post('terms/bulk-status', [TermController::class, 'bulkStatus'])->name('terms.bulk-status');
+            Route::resource('terms', TermController::class)->except(['show']);
+
+            Route::resource('courses', AdminCourseController::class);
+            Route::post('courses/{course}/outcomes', [CourseOutcomeController::class, 'store'])->name('courses.outcomes.store');
+            Route::put('courses/{course}/outcomes/{outcome}', [CourseOutcomeController::class, 'update'])->name('courses.outcomes.update');
+            Route::delete('courses/{course}/outcomes/{outcome}', [CourseOutcomeController::class, 'destroy'])->name('courses.outcomes.destroy');
+            Route::post('courses/{course}/prerequisites', [CoursePrerequisiteController::class, 'store'])->name('courses.prerequisites.store');
+            Route::delete('courses/{course}/prerequisites/{prerequisite}', [CoursePrerequisiteController::class, 'destroy'])->name('courses.prerequisites.destroy');
             
             // Demo routes
             Route::get('demo', [DemoController::class, 'index'])->name('demo.index');
@@ -56,10 +77,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             
             // Department routes (placeholder for super admin)
             Route::get('departments', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Departments']))->name('departments.index');
-            
-            // Courses routes (placeholder for super admin)
-            Route::get('courses', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Courses']))->name('courses.index');
-            
             // Requirements routes (placeholder for super admin)
             Route::get('requirements', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Requirements']))->name('requirements.index');
             

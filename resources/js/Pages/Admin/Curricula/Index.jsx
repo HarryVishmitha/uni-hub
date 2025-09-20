@@ -192,7 +192,9 @@ function CreateModal({ open, onClose, programs }) {
             ...formData,
             notes: notesPayload,
             min_credits: formData.min_credits || null,
-        })).post(route('admin.curricula.store'), {
+        }));
+
+        post(route('admin.curricula.store'), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
@@ -309,7 +311,9 @@ function EditModal({ curriculum, programs, onClose }) {
             ...formData,
             notes: notesPayload,
             min_credits: formData.min_credits || null,
-        })).put(route('admin.curricula.update', curriculum.id), {
+        }));
+
+        put(route('admin.curricula.update', curriculum.id), {
             preserveScroll: true,
             onSuccess: () => {
                 onClose();
@@ -427,7 +431,9 @@ function RequirementsModal({ curriculum, onClose }) {
                 ...formData,
                 rules: parsedRules,
                 credit_value: formData.credit_value || null,
-            })).put(route('admin.curricula.requirements.update', [curriculum.id, editingRequirement.id]), {
+            }));
+
+            put(route('admin.curricula.requirements.update', [curriculum.id, editingRequirement.id]), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setEditingRequirement(null);
@@ -446,7 +452,9 @@ function RequirementsModal({ curriculum, onClose }) {
                 ...formData,
                 rules: parsedRules,
                 credit_value: formData.credit_value || null,
-            })).post(route('admin.curricula.requirements.store', curriculum.id), {
+            }));
+
+            post(route('admin.curricula.requirements.store', curriculum.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     reset({

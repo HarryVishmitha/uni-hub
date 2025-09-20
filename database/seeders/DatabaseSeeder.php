@@ -20,6 +20,10 @@ class DatabaseSeeder extends Seeder
             ProgramSeeder::class,
             CurriculumSeeder::class,
             BranchUserBackfillSeeder::class,
+            TermSeeder::class,
+            CourseSeeder::class,
+            CourseOutcomeSeeder::class,
+            CoursePrerequisiteSeeder::class,
         ]);
     }
 }

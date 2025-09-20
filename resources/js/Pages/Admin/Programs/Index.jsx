@@ -359,13 +359,17 @@ function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
         }
     }, [program]);
 
+    const filteredOrgUnits = useMemo(() => {
+        if (!program) {
+            return [];
+        }
+
+        return orgUnits?.filter((unit) => unit.branch_id === program.branch.id) ?? [];
+    }, [orgUnits, program]);
+
     if (!program) {
         return null;
     }
-
-    const filteredOrgUnits = useMemo(() => {
-        return orgUnits?.filter((unit) => unit.branch_id === program.branch.id);
-    }, [orgUnits, program]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -399,6 +403,7 @@ function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
                         onChange={(e) => setData('org_unit_id', e.target.value)}
                         className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     >
+                        <option value="" disabled>{filteredOrgUnits.length ? 'Select org unit' : 'No org units available'}</option>
                         {filteredOrgUnits?.map((unit) => (
                             <option key={unit.id} value={unit.id}>{unit.name}</option>
                         ))}

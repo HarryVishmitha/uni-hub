@@ -13,7 +13,7 @@ import Checkbox from '@/Components/Checkbox.jsx';
 export default function Index() {
     const { props } = usePage();
     const { branches, universities, filters, auth } = props;
-    const roles = auth?.roles ?? [];
+    const roles = auth?.user?.roles ?? [];
     const canCreate = roles.includes('super_admin');
 
     const [search, setSearch] = useState(filters?.search ?? '');
@@ -206,7 +206,9 @@ function CreateModal({ open, onClose, universities }) {
             ...formData,
             theme_tokens: themeTokens,
             feature_flags: featureFlags,
-        })).post(route('admin.branches.store'), {
+        }));
+
+        post(route('admin.branches.store'), {
             preserveScroll: true,
             onSuccess: () => {
                 reset();
@@ -362,7 +364,9 @@ function EditModal({ branch, universities, canChangeUniversity, onClose }) {
             ...formData,
             theme_tokens: themeTokens,
             feature_flags: featureFlags,
-        })).put(route('admin.branches.update', branch.id), {
+        }));
+
+        put(route('admin.branches.update', branch.id), {
             preserveScroll: true,
             onSuccess: () => {
                 onClose();

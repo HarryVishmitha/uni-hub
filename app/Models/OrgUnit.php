@@ -42,4 +42,9 @@ class OrgUnit extends Model
     {
         return $this->hasMany(Program::class);
     }
+
+    public function courses()
+    {
+        return $this->hasMany(Course::class);
+    }
 }

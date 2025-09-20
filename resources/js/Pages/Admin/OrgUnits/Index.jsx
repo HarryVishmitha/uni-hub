@@ -286,6 +286,14 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
         }
     }, [unit]);
 
+    const availableParents = useMemo(() => {
+        if (!unit) {
+            return [];
+        }
+
+        return parentOptions?.filter((option) => option.branch_id === unit.branch.id && option.id !== unit.id) ?? [];
+    }, [parentOptions, unit]);
+
     if (!unit) {
         return null;
     }
@@ -299,10 +307,6 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
             },
         });
     };
-
-    const availableParents = useMemo(() => {
-        return parentOptions?.filter((option) => option.branch_id === unit.branch.id && option.id !== unit.id);
-    }, [parentOptions, unit]);
 
     return (
         <Modal show={!!unit} onClose={() => { reset(); onClose(); }}>

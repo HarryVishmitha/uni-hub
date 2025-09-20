@@ -5,7 +5,11 @@ namespace App\Http\Middleware;
 use App\Models\Branch;
 use App\Models\Curriculum;
 use App\Models\CurriculumRequirement;
+use App\Models\Course;
+use App\Models\CourseOutcome;
+use App\Models\CoursePrerequisite;
 use App\Models\OrgUnit;
+use App\Models\Term;
 use App\Models\Program;
 use App\Support\BranchScope;
 use Closure;
@@ -27,13 +31,26 @@ class ActsOnBranch
             abort(401);
         }
 
+        // Allow Super Admin to access without branch constraint
+        if ($user->isSuperAdmin()) {
+            $branch = $this->resolveBranchFromRequest($request);
+            
+            if ($branch) {
+                app()->instance('activeBranch', $branch);
+                $request->attributes->set('activeBranch', $branch);
+                $request->attributes->set('activeBranchId', $branch->id);
+            }
+            
+            return $next($request);
+        }
+
         $branch = $this->resolveBranchFromRequest($request);
 
         if ($branch && ! BranchScope::allows($user, $branch->id)) {
             abort(403, 'Cross-branch access is not permitted.');
         }
 
-        if (! $branch && ! $user->isSuperAdmin()) {
+        if (! $branch) {
             $branch = $user->branch;
 
             if (! $branch) {
@@ -74,6 +91,22 @@ class ActsOnBranch
 
                 if ($parameter instanceof CurriculumRequirement) {
                     return $parameter->branch;
+                }
+
+                if ($parameter instanceof Term) {
+                    return $parameter->branch;
+                }
+
+                if ($parameter instanceof Course) {
+                    return $parameter->orgUnit?->branch;
+                }
+
+                if ($parameter instanceof CourseOutcome) {
+                    return $parameter->course?->orgUnit?->branch;
+                }
+
+                if ($parameter instanceof CoursePrerequisite) {
+                    return $parameter->course?->orgUnit?->branch;
                 }
             }
         }
