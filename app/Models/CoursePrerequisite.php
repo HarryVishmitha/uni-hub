@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @mixin IdeHelperCoursePrerequisite
+ */
 class CoursePrerequisite extends Pivot
 {
     use HasFactory;

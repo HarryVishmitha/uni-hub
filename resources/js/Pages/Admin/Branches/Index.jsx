@@ -9,12 +9,16 @@ import TextInput from '@/Components/TextInput.jsx';
 import InputLabel from '@/Components/InputLabel.jsx';
 import InputError from '@/Components/InputError.jsx';
 import Checkbox from '@/Components/Checkbox.jsx';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction, submitWithAlerts } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function BranchesIndex() {
     const { props } = usePage();
     const { branches, universities, filters, auth } = props;
     const roles = auth?.user?.roles ?? [];
     const canCreate = roles.includes('super_admin');
+    const { success, error } = useAlerts();
 
     const [search, setSearch] = useState(filters?.search ?? '');
     const [universityId, setUniversityId] = useState(filters?.university_id ?? '');
@@ -29,13 +33,20 @@ export default function Index() {
     }, [search, universityId]);
 
     const onDelete = (branch) => {
-        if (confirm(`Archive ${branch.name}?`)) {
-            router.delete(route('admin.branches.destroy', branch.id), { preserveScroll: true });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive ${branch.name}?`,
+            action: () => {
+                router.delete(route('admin.branches.destroy', branch.id), { 
+                    preserveScroll: true,
+                    onSuccess: () => success(`Branch "${branch.name}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive branch')
+                });
+            }
+        });
     };
 
     return (
-        <AdminLayout title="Branches" header="Branches">
+        <>
             <Head title="Branches" />
 
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -152,7 +163,7 @@ export default function Index() {
                 canChangeUniversity={roles.includes('super_admin')}
                 onClose={() => setEditing(null)}
             />
-        </AdminLayout>
+        </>
     );
 }
 
@@ -168,6 +179,7 @@ function CreateModal({ open, onClose, universities }) {
         feature_flags: {},
         is_active: true,
     });
+    const { success, error } = useAlerts();
     const [themeTokensText, setThemeTokensText] = useState('{}');
     const [featureFlagsText, setFeatureFlagsText] = useState('{}');
     const [localErrors, setLocalErrors] = useState({ theme_tokens: null, feature_flags: null });
@@ -211,11 +223,15 @@ function CreateModal({ open, onClose, universities }) {
         post(route('admin.branches.store'), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Branch "${data.name}" has been created successfully`);
                 reset();
                 setThemeTokensText('{}');
                 setFeatureFlagsText('{}');
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -316,6 +332,7 @@ function EditModal({ branch, universities, canChangeUniversity, onClose }) {
         feature_flags: {},
         is_active: true,
     });
+    const { success, error } = useAlerts();
     const [themeTokensText, setThemeTokensText] = useState('{}');
     const [featureFlagsText, setFeatureFlagsText] = useState('{}');
     const [localErrors, setLocalErrors] = useState({ theme_tokens: null, feature_flags: null });
@@ -369,8 +386,12 @@ function EditModal({ branch, universities, canChangeUniversity, onClose }) {
         put(route('admin.branches.update', branch.id), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Branch "${data.name}" has been updated successfully`);
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -458,5 +479,14 @@ function EditModal({ branch, universities, canChangeUniversity, onClose }) {
                 </div>
             </form>
         </Modal>
+    );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
+    return (
+        <AdminLayout title="Branches" header="Branches">
+            <BranchesIndex />
+        </AdminLayout>
     );
 }

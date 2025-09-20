@@ -36,7 +36,12 @@ class TermController extends Controller
         $termsQuery = Term::query()
             ->with('branch:id,name,code')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->when($search !== '', fn ($q) => $q->where('title', 'like', "%{$search}%"))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                });
+            })
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($startDate, fn ($q) => $q->whereDate('start_date', '>=', $startDate))
             ->when($endDate, fn ($q) => $q->whereDate('end_date', '<=', $endDate));
@@ -45,22 +50,30 @@ class TermController extends Controller
             ->orderByDesc('start_date')
             ->paginate(15)
             ->withQueryString()
-            ->through(fn (Term $term) => [
-                'id' => $term->id,
-                'title' => $term->title,
-                'status' => $term->status,
-                'start_date' => $term->start_date?->toDateString(),
-                'end_date' => $term->end_date?->toDateString(),
-                'branch' => $term->branch?->only(['id', 'name', 'code']),
-            ]);
+            ->through(function (Term $term) {
+                return [
+                    'id' => $term->id,
+                    'branch_id' => $term->branch_id,
+                    'title' => $term->title,
+                    'code' => $term->code,
+                    'status' => $term->status,
+                    'status_label' => ucfirst($term->status),
+                    'start_date' => $term->start_date ? date('Y-m-d', strtotime($term->start_date)) : null,
+                    'end_date' => $term->end_date ? date('Y-m-d', strtotime($term->end_date)) : null,
+                    'add_drop_start' => $term->add_drop_start ? date('Y-m-d', strtotime($term->add_drop_start)) : null,
+                    'add_drop_end' => $term->add_drop_end ? date('Y-m-d', strtotime($term->add_drop_end)) : null,
+                    'description' => $term->description,
+                    'branch' => $term->branch?->only(['id', 'name', 'code']),
+                ];
+            });
 
         return Inertia::render('Admin/Terms/Index', [
             'filters' => [
                 'search' => $search,
                 'branch_id' => $branchId,
                 'status' => $status,
-                'start_date' => $startDate?->toDateString(),
-                'end_date' => $endDate?->toDateString(),
+                'start_date' => $startDate ? date('Y-m-d', strtotime($startDate)) : null,
+                'end_date' => $endDate ? date('Y-m-d', strtotime($endDate)) : null,
             ],
             'terms' => $terms,
             'statusOptions' => Term::STATUSES,
@@ -75,13 +88,16 @@ class TermController extends Controller
         $this->authorize('create', Term::class);
 
         $user = $request->user();
+        
+        // Get branch options based on user permissions
+        $branchOptions = $user->isSuperAdmin()
+            ? Branch::query()->orderBy('name')->get(['id', 'name', 'code'])
+            : Branch::query()->where('id', $user->branch_id)->orderBy('name')->get(['id', 'name', 'code']);
 
         return Inertia::render('Admin/Terms/Edit', [
             'term' => null,
             'statusOptions' => Term::STATUSES,
-            'branchOptions' => $user->isSuperAdmin()
-                ? Branch::query()->orderBy('name')->get(['id', 'name', 'code'])
-                : null,
+            'branchOptions' => $branchOptions,
         ]);
     }
 
@@ -102,22 +118,30 @@ class TermController extends Controller
         $this->authorize('update', $term);
 
         $term->load('branch:id,name,code');
+        
+        $user = $request->user();
+        
+        // Get branch options based on user permissions
+        $branchOptions = $user->isSuperAdmin()
+            ? Branch::query()->orderBy('name')->get(['id', 'name', 'code'])
+            : Branch::query()->where('id', $user->branch_id)->orderBy('name')->get(['id', 'name', 'code']);
 
         return Inertia::render('Admin/Terms/Edit', [
             'term' => [
                 'id' => $term->id,
                 'branch_id' => $term->branch_id,
                 'title' => $term->title,
+                'code' => $term->code,
                 'status' => $term->status,
-                'start_date' => $term->start_date?->toDateString(),
-                'end_date' => $term->end_date?->toDateString(),
-                'add_drop_start' => $term->add_drop_start?->toDateString(),
-                'add_drop_end' => $term->add_drop_end?->toDateString(),
+                'start_date' => $term->start_date ? date('Y-m-d', strtotime($term->start_date)) : null,
+                'end_date' => $term->end_date ? date('Y-m-d', strtotime($term->end_date)) : null,
+                'add_drop_start' => $term->add_drop_start ? date('Y-m-d', strtotime($term->add_drop_start)) : null,
+                'add_drop_end' => $term->add_drop_end ? date('Y-m-d', strtotime($term->add_drop_end)) : null,
+                'description' => $term->description,
+                'branch' => $term->branch?->only(['id', 'name', 'code']),
             ],
             'statusOptions' => Term::STATUSES,
-            'branchOptions' => $request->user()->isSuperAdmin()
-                ? Branch::query()->orderBy('name')->get(['id', 'name', 'code'])
-                : null,
+            'branchOptions' => $branchOptions,
         ]);
     }
 

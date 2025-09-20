@@ -5,37 +5,53 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
+import { useAlerts } from '@/Contexts/AlertContext';
 
-export default function Edit() {
+// Inner component that uses AlertProvider from AdminLayout
+function TermsEdit() {
   const { props } = usePage();
   const { term, statusOptions = [], branchOptions = [] } = props;
   const isEdit = Boolean(term);
+  const { success, error } = useAlerts();
 
   const { data, setData, post, put, processing, errors, reset } = useForm({
     branch_id: term?.branch_id ?? branchOptions?.[0]?.id ?? '',
     title: term?.title ?? '',
+    code: term?.code ?? '',
     status: term?.status ?? statusOptions[0] ?? 'planned',
     start_date: term?.start_date ?? '',
     end_date: term?.end_date ?? '',
     add_drop_start: term?.add_drop_start ?? '',
     add_drop_end: term?.add_drop_end ?? '',
+    description: term?.description ?? '',
   });
 
   const submit = (event) => {
     event.preventDefault();
 
     if (isEdit) {
-      put(route('admin.terms.update', term.id));
+      put(route('admin.terms.update', term.id), {
+        onSuccess: () => {
+          success(`Term "${data.title}" updated successfully`);
+        },
+        onError: (errors) => {
+          error(Object.values(errors).flat().join('\n') || 'Failed to update term');
+        }
+      });
     } else {
-      post(route('admin.terms.store'));
+      post(route('admin.terms.store'), {
+        onSuccess: () => {
+          success(`Term "${data.title}" created successfully`);
+        },
+        onError: (errors) => {
+          error(Object.values(errors).flat().join('\n') || 'Failed to create term');
+        }
+      });
     }
   };
 
   return (
-    <AdminLayout
-      title={isEdit ? 'Edit Term' : 'Create Term'}
-      header={isEdit ? 'Edit Term' : 'Create Term'}
-    >
+    <>
       <Head title={isEdit ? 'Edit Term' : 'Create Term'} />
 
       <div className="mx-auto max-w-3xl">
@@ -76,16 +92,28 @@ export default function Edit() {
             </div>
           )}
 
-          <div>
-            <InputLabel htmlFor="term-title" value="Title" />
-            <TextInput
-              id="term-title"
-              value={data.title}
-              onChange={(event) => setData('title', event.target.value)}
-              className="mt-1 block w-full"
-              required
-            />
-            <InputError className="mt-2" message={errors.title} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <InputLabel htmlFor="term-title" value="Title" />
+              <TextInput
+                id="term-title"
+                value={data.title}
+                onChange={(event) => setData('title', event.target.value)}
+                className="mt-1 block w-full"
+                required
+              />
+              <InputError className="mt-2" message={errors.title} />
+            </div>
+            <div>
+              <InputLabel htmlFor="term-code" value="Code" />
+              <TextInput
+                id="term-code"
+                value={data.code ?? ''}
+                onChange={(event) => setData('code', event.target.value)}
+                className="mt-1 block w-full"
+              />
+              <InputError className="mt-2" message={errors.code} />
+            </div>
           </div>
 
           <div>
@@ -154,6 +182,18 @@ export default function Edit() {
             </div>
           </div>
 
+          <div>
+            <InputLabel htmlFor="term-description" value="Description (Optional)" />
+            <textarea
+              id="term-description"
+              value={data.description ?? ''}
+              onChange={(event) => setData('description', event.target.value)}
+              className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              rows={3}
+            />
+            <InputError className="mt-2" message={errors.description} />
+          </div>
+
           <div className="flex justify-end gap-2">
             <SecondaryButton type="button" onClick={() => reset()}>
               Reset
@@ -164,6 +204,18 @@ export default function Edit() {
           </div>
         </form>
       </div>
+    </>
+  );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Edit() {
+  return (
+    <AdminLayout
+      title="Edit Term"
+      header="Edit Term"
+    >
+      <TermsEdit />
     </AdminLayout>
   );
 }

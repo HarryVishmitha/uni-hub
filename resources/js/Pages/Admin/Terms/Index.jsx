@@ -17,6 +17,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 function TermsIndex() {
   const { props } = usePage();
   const { terms, filters, statusOptions = [], branches = [] } = props;
+  const defaultStatus = statusOptions?.[0] ?? 'planned';
   const { addAlert, success, error, warning, info } = useAlerts();
   
   // Define all state variables
@@ -37,7 +38,7 @@ function TermsIndex() {
     branch_id: branchId || usePage().props.auth?.user?.branch_id || '',
     start_date: '',
     end_date: '',
-    status: 'upcoming',
+    status: defaultStatus,
     description: ''
   });
   
@@ -48,7 +49,7 @@ function TermsIndex() {
     branch_id: '',
     start_date: '',
     end_date: '',
-    status: '',
+    status: defaultStatus,
     description: ''
   });
 
@@ -134,15 +135,16 @@ function TermsIndex() {
     return (statusOptions ?? [])
       .map((option, index) => {
         if (typeof option === 'string') {
+          const label = option.charAt(0).toUpperCase() + option.slice(1);
           return {
             key: `status-${index}-${option}`,
             value: option,
-            label: option,
+            label,
           };
         }
 
         const value = option?.value ?? option?.id ?? option?.slug ?? option?.name ?? null;
-        const label = option?.label ?? option?.name ?? option?.title ?? value ?? `Status ${index + 1}`;
+        const label = option?.label ?? option?.name ?? option?.title ?? (typeof value === 'string' ? value.charAt(0).toUpperCase() + value.slice(1) : value) ?? `Status ${index + 1}`;
         const key = option?.key ?? `status-${index}-${value ?? 'unknown'}`;
 
         if (value === null || value === undefined || value === '') {
@@ -173,7 +175,7 @@ function TermsIndex() {
         branch_id: editing.branch_id || '',
         start_date: editing.start_date ? formatDate(editing.start_date) : null,
         end_date: editing.end_date ? formatDate(editing.end_date) : null,
-        status: editing.status || 'upcoming',
+        status: editing.status || defaultStatus,
         description: editing.description || ''
       });
     }

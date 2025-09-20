@@ -8,10 +8,14 @@ import Modal from '@/Components/Modal.jsx';
 import TextInput from '@/Components/TextInput.jsx';
 import InputLabel from '@/Components/InputLabel.jsx';
 import InputError from '@/Components/InputError.jsx';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction, submitWithAlerts } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function CurriculaIndex() {
     const { props } = usePage();
     const { curricula, programs, filters } = props;
+    const { success, error } = useAlerts();
 
     const [search, setSearch] = useState(filters?.search ?? '');
     const [programFilter, setProgramFilter] = useState(filters?.program_id ?? '');
@@ -27,13 +31,20 @@ export default function Index() {
     }, [search, programFilter]);
 
     const onDelete = (curriculum) => {
-        if (confirm(`Archive curriculum ${curriculum.version}?`)) {
-            router.delete(route('admin.curricula.destroy', curriculum.id), { preserveScroll: true });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive curriculum ${curriculum.version}?`,
+            action: () => {
+                router.delete(route('admin.curricula.destroy', curriculum.id), { 
+                    preserveScroll: true,
+                    onSuccess: () => success(`Curriculum "${curriculum.version}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive curriculum')
+                });
+            }
+        });
     };
 
     return (
-        <AdminLayout title="Curricula" header="Curricula">
+        <>
             <Head title="Curricula" />
 
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -149,7 +160,7 @@ export default function Index() {
                 curriculum={requirementsTarget}
                 onClose={() => setRequirementsTarget(null)}
             />
-        </AdminLayout>
+        </>
     );
 }
 
@@ -162,6 +173,7 @@ function CreateModal({ open, onClose, programs }) {
         min_credits: '',
         notes: '',
     });
+    const { success, error } = useAlerts();
 
     useEffect(() => {
         if (!open) {
@@ -197,9 +209,13 @@ function CreateModal({ open, onClose, programs }) {
         post(route('admin.curricula.store'), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Curriculum "${data.version}" has been created successfully`);
                 reset();
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -277,6 +293,7 @@ function EditModal({ curriculum, programs, onClose }) {
         min_credits: '',
         notes: '',
     });
+    const { success, error } = useAlerts();
 
     useEffect(() => {
         if (curriculum) {
@@ -316,8 +333,12 @@ function EditModal({ curriculum, programs, onClose }) {
         put(route('admin.curricula.update', curriculum.id), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Curriculum "${data.version}" has been updated successfully`);
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -388,6 +409,7 @@ function RequirementsModal({ curriculum, onClose }) {
         rules: '',
         is_required: true,
     });
+    const { success, error } = useAlerts();
     const [editingRequirement, setEditingRequirement] = useState(null);
 
     useEffect(() => {
@@ -436,6 +458,7 @@ function RequirementsModal({ curriculum, onClose }) {
             put(route('admin.curricula.requirements.update', [curriculum.id, editingRequirement.id]), {
                 preserveScroll: true,
                 onSuccess: () => {
+                    success(`Requirement "${data.title}" has been updated successfully`);
                     setEditingRequirement(null);
                     reset({
                         code: '',
@@ -446,6 +469,9 @@ function RequirementsModal({ curriculum, onClose }) {
                         is_required: true,
                     });
                 },
+                onError: (errors) => {
+                    error(Object.values(errors).flat().join('\n'));
+                }
             });
         } else {
             transform((formData) => ({
@@ -457,6 +483,7 @@ function RequirementsModal({ curriculum, onClose }) {
             post(route('admin.curricula.requirements.store', curriculum.id), {
                 preserveScroll: true,
                 onSuccess: () => {
+                    success(`Requirement "${data.title}" has been added successfully`);
                     reset({
                         code: '',
                         title: '',
@@ -466,6 +493,9 @@ function RequirementsModal({ curriculum, onClose }) {
                         is_required: true,
                     });
                 },
+                onError: (errors) => {
+                    error(Object.values(errors).flat().join('\n'));
+                }
             });
         }
     };
@@ -483,11 +513,16 @@ function RequirementsModal({ curriculum, onClose }) {
     };
 
     const onDestroy = (requirement) => {
-        if (confirm(`Archive requirement ${requirement.title}?`)) {
-            destroy(route('admin.curricula.requirements.destroy', [curriculum.id, requirement.id]), {
-                preserveScroll: true,
-            });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive requirement ${requirement.title}?`,
+            action: () => {
+                destroy(route('admin.curricula.requirements.destroy', [curriculum.id, requirement.id]), {
+                    preserveScroll: true,
+                    onSuccess: () => success(`Requirement "${requirement.title}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive requirement')
+                });
+            }
+        });
     };
 
     return (
@@ -585,5 +620,14 @@ function RequirementsModal({ curriculum, onClose }) {
                 </form>
             </div>
         </Modal>
+    );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
+    return (
+        <AdminLayout title="Curricula" header="Curricula">
+            <CurriculaIndex />
+        </AdminLayout>
     );
 }

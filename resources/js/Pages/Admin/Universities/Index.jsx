@@ -9,10 +9,14 @@ import TextInput from '@/Components/TextInput.jsx';
 import InputLabel from '@/Components/InputLabel.jsx';
 import InputError from '@/Components/InputError.jsx';
 import Checkbox from '@/Components/Checkbox.jsx';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction, submitWithAlerts } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function UniversitiesIndex() {
     const { props } = usePage();
     const { universities, filters } = props;
+    const { success, error } = useAlerts();
 
     const [search, setSearch] = useState(filters?.search ?? '');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -26,11 +30,16 @@ export default function Index() {
     }, [search]);
 
     const onDelete = (university) => {
-        if (confirm(`Archive ${university.name}?`)) {
-            router.delete(route('admin.universities.destroy', university.id), {
-                preserveScroll: true,
-            });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive ${university.name}?`,
+            action: () => {
+                router.delete(route('admin.universities.destroy', university.id), {
+                    preserveScroll: true,
+                    onSuccess: () => success(`University "${university.name}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive university')
+                });
+            }
+        });
     };
 
     const openEdit = (university) => {
@@ -40,10 +49,7 @@ export default function Index() {
     const closeEdit = () => setEditing(null);
 
     return (
-        <AdminLayout
-            title="Universities"
-            header="Universities"
-        >
+        <>
             <Head title="Universities" />
 
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -133,7 +139,7 @@ export default function Index() {
 
             <CreateModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
             <EditModal university={editing} onClose={closeEdit} />
-        </AdminLayout>
+        </>
     );
 }
 
@@ -144,15 +150,20 @@ function CreateModal({ open, onClose }) {
         domain: '',
         is_active: true,
     });
+    const { success, error } = useAlerts();
 
     const submit = (e) => {
         e.preventDefault();
         post(route('admin.universities.store'), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`University "${data.name}" has been created successfully`);
                 reset();
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -200,6 +211,7 @@ function EditModal({ university, onClose }) {
         domain: '',
         is_active: true,
     });
+    const { success, error } = useAlerts();
 
     useEffect(() => {
         if (university) {
@@ -219,8 +231,12 @@ function EditModal({ university, onClose }) {
         put(route('admin.universities.update', university.id), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`University "${data.name}" has been updated successfully`);
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
@@ -258,5 +274,14 @@ function EditModal({ university, onClose }) {
                 </div>
             </form>
         </Modal>
+    );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
+    return (
+        <AdminLayout title="Universities" header="Universities">
+            <UniversitiesIndex />
+        </AdminLayout>
     );
 }

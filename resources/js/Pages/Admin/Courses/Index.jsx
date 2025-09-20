@@ -4,8 +4,11 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import SecondaryButton from '@/Components/SecondaryButton';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function CoursesIndex() {
   const { props } = usePage();
   const {
     courses,
@@ -15,6 +18,7 @@ export default function Index() {
     branchOptions = [],
     orgUnitFlat = [],
   } = props;
+  const { success, error, info } = useAlerts();
 
   const [search, setSearch] = useState(filters?.search ?? '');
   const [status, setStatus] = useState(filters?.status ?? '');
@@ -46,263 +50,248 @@ export default function Index() {
 
   const visibleOrgUnits = branchId ? orgUnitOptions.filter((option) => option.branch_id === Number(branchId)) : orgUnitOptions;
 
-  useEffect(() => {
-    if (branchId && orgUnitId) {
-      const match = visibleOrgUnits.find((option) => option.id === Number(orgUnitId));
-      if (!match) {
-        setOrgUnitId('');
-      }
-    }
-  }, [branchId]);
-
   return (
-    <AdminLayout title="Courses" header="Courses">
+    <>
       <Head title="Courses" />
 
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/70">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Course Catalog</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Manage course offerings, outcomes, and prerequisites.</p>
-            </div>
-            <div className="flex gap-2">
-              <Link href={route('admin.courses.create')} className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-                New Course
-              </Link>
-              <SecondaryButton onClick={() => resetFilters()}>Reset Filters</SecondaryButton>
-            </div>
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Course Catalog</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Browse all courses offered across all branches and departments.
+            </p>
           </div>
+          <Link
+            href={route('admin.courses.create')}
+            className="inline-flex items-center rounded-xl border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            New Course
+          </Link>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="px-6 py-4">
+          <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <InputLabel htmlFor="course-search" value="Search" />
               <TextInput
                 id="course-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Code or title"
                 className="mt-1 block w-full"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Title, code, or description"
               />
             </div>
 
-            {branchOptions?.length > 0 && (
-              <div>
-                <InputLabel htmlFor="course-branch" value="Branch" />
-                <select
-                  id="course-branch"
-                  value={branchId ?? ''}
-                  onChange={(event) => setBranchId(event.target.value || '')}
-                  className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                >
-                  <option value="">All Branches</option>
-                  {branchOptions.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name} ({branch.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <div>
-              <InputLabel htmlFor="course-org-unit" value="Org Unit" />
+              <InputLabel htmlFor="filter-status" value="Status" />
               <select
-                id="course-org-unit"
-                value={orgUnitId ?? ''}
-                onChange={(event) => setOrgUnitId(event.target.value || '')}
+                id="filter-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
                 className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
               >
-                <option value="">All Units</option>
-                {visibleOrgUnits.map((unit) => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <InputLabel htmlFor="course-status" value="Status" />
-              <select
-                id="course-status"
-                value={status ?? ''}
-                onChange={(event) => setStatus(event.target.value || '')}
-                className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-              >
-                <option value="">All Statuses</option>
+                <option value="">All Status</option>
                 {statusOptions.map((option) => (
                   <option key={option} value={option}>
-                    {capitalize(option)}
+                    {option}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <InputLabel htmlFor="course-mode" value="Delivery Mode" />
+              <InputLabel htmlFor="filter-mode" value="Delivery Mode" />
               <select
-                id="course-mode"
-                value={mode ?? ''}
-                onChange={(event) => setMode(event.target.value || '')}
+                id="filter-mode"
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
                 className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
               >
                 <option value="">All Modes</option>
                 {deliveryModeOptions.map((option) => (
                   <option key={option} value={option}>
-                    {capitalize(option)}
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <InputLabel htmlFor="filter-branch" value="Branch" />
+              <select
+                id="filter-branch"
+                value={branchId}
+                onChange={(e) => {
+                  setBranchId(e.target.value);
+                  setOrgUnitId('');
+                }}
+                className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              >
+                <option value="">All Branches</option>
+                {branchOptions.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <InputLabel htmlFor="filter-orgunit" value="Department" />
+              <select
+                id="filter-orgunit"
+                value={orgUnitId}
+                onChange={(e) => setOrgUnitId(e.target.value)}
+                className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              >
+                <option value="">All Departments</option>
+                {visibleOrgUnits.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name}
                   </option>
                 ))}
               </select>
             </div>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900/70">
-          <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Courses</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{courses.total} total</p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-              <thead className="bg-gray-50 dark:bg-gray-900/40">
-                <tr>
-                  <HeaderCell>Code</HeaderCell>
-                  <HeaderCell>Title</HeaderCell>
-                  <HeaderCell>Branch</HeaderCell>
-                  <HeaderCell>Org Unit</HeaderCell>
-                  <HeaderCell>Mode</HeaderCell>
-                  <HeaderCell>Status</HeaderCell>
-                  <HeaderCell className="text-right">Actions</HeaderCell>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {courses.data?.length === 0 && (
+          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                <thead className="bg-gray-50 dark:bg-gray-800/60">
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                      No courses found.
-                    </td>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Course
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Credits
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Department
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Branch
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Actions
+                    </th>
                   </tr>
-                )}
-
-                {courses.data?.map((course) => (
-                  <tr key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                    <td className="px-4 py-3 text-sm font-semibold uppercase text-gray-900 dark:text-gray-100">{course.code}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{course.title}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{course.branch?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{course.org_unit?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{capitalize(course.delivery_mode)}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <StatusBadge status={course.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm">
-                      <Link
-                        href={route('admin.courses.show', course.id)}
-                        className="text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
+                  {courses.data.length > 0 ? (
+                    courses.data.map((course) => (
+                      <tr key={course.id}>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">{course.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {course.code} &middot; {course.delivery_mode}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                          {course.credit_hours}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                          {course.org_unit?.name || '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                          {course.branch?.name || '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              course.status === 'active'
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                            }`}
+                          >
+                            {course.status}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={route('admin.courses.edit', course.id)}
+                              className="inline-flex items-center rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold uppercase text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                            >
+                              Edit
+                            </Link>
+                            <SecondaryButton onClick={() => handleDeleteClick(course)}>Delete</SecondaryButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                        colSpan={6}
                       >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        No courses found matching your criteria.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {courses.links?.length > 0 && (
-            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
-              <span>
-                Showing {courses.from ?? 0}–{courses.to ?? 0} of {courses.total}
-              </span>
-              <div className="flex gap-2">
-                {courses.links.map((link) => (
-                  <button
-                    key={link.label}
-                    type="button"
-                    disabled={!link.url}
-                    className={`rounded-lg px-3 py-1 text-sm ${link.active ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                    dangerouslySetInnerHTML={{ __html: link.label }}
-                    onClick={() => link.url && router.visit(link.url, { preserveState: true, preserveScroll: true })}
-                  />
-                ))}
-              </div>
+          {courses.links && (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {courses.links.map((link) => (
+                <button
+                  key={link.label}
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                  onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
+                  className={`rounded-lg px-3 py-1 text-sm ${
+                    link.active
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                  disabled={!link.url}
+                />
+              ))}
             </div>
           )}
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 
-  function resetFilters() {
-    setSearch('');
-    setStatus('');
-    setMode('');
-    setBranchId('');
-    setOrgUnitId('');
-    router.get(route('admin.courses.index'), {}, { replace: true });
+  function handleDeleteClick(course) {
+    confirmAction({
+      title: 'Delete Course',
+      message: `Are you sure you want to delete the course "${course.title}"?`,
+      action: () =>
+        router.delete(route('admin.courses.destroy', course.id), {
+          onSuccess: () => {
+            success(`Course "${course.title}" was deleted successfully`);
+          },
+          onError: (errors) => {
+            error(errors?.message || 'An error occurred while deleting the course');
+          },
+        }),
+    });
   }
 }
 
-function buildOrgUnitOptions(units = [], branches = []) {
-  const branchMap = new Map(branches.map((branch) => [branch.id, branch]));
-  const unitMap = new Map(units.map((unit) => [unit.id, unit]));
-  const depthCache = new Map();
-
-  const computeDepth = (unit) => {
-    if (depthCache.has(unit.id)) {
-      return depthCache.get(unit.id);
-    }
-    let depth = 0;
-    let current = unit;
-    const visited = new Set();
-
-    while (current?.parent_id && unitMap.has(current.parent_id) && !visited.has(current.parent_id)) {
-      visited.add(current.parent_id);
-      depth += 1;
-      current = unitMap.get(current.parent_id);
-    }
-
-    depthCache.set(unit.id, depth);
-    return depth;
-  };
-
-  return units.map((unit) => {
-    const depth = computeDepth(unit);
-    const branch = branchMap.get(unit.branch_id);
-    const prefix = depth > 0 ? `${'— '.repeat(depth)}` : '';
-    const label = `${prefix}${unit.name} (${unit.code})${branch ? ` — ${branch.code}` : ''}`;
-
+function buildOrgUnitOptions(orgUnitFlat, branchOptions) {
+  return orgUnitFlat.map((unit) => {
+    const branch = branchOptions.find((b) => b.id === unit.branch_id);
     return {
-      id: unit.id,
-      label,
-      branch_id: unit.branch_id,
+      ...unit,
+      name: `${unit.name} ${branch ? `(${branch.code})` : ''}`,
     };
   });
 }
 
-function HeaderCell({ children, className = '' }) {
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
   return (
-    <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 ${className}`}>
-      {children}
-    </th>
+    <AdminLayout title="Courses" header="Courses">
+      <CoursesIndex />
+    </AdminLayout>
   );
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    draft: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-    active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-    archived: 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  };
-
-  return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${map[status] ?? 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
-      {status ?? 'unknown'}
-    </span>
-  );
-}
-
-function capitalize(value = '') {
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
 }

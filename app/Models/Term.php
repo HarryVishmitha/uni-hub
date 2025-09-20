@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @mixin IdeHelperTerm
+ */
 class Term extends Model
 {
     public const STATUSES = ['planned', 'active', 'closed'];
@@ -20,11 +23,13 @@ class Term extends Model
     protected $fillable = [
         'branch_id',
         'title',
+        'code',
         'start_date',
         'end_date',
         'add_drop_start',
         'add_drop_end',
         'status',
+        'description',
     ];
 
     protected $casts = [
@@ -37,11 +42,13 @@ class Term extends Model
     protected static $logAttributes = [
         'branch_id',
         'title',
+        'code',
         'start_date',
         'end_date',
         'add_drop_start',
         'add_drop_end',
         'status',
+        'description',
     ];
 
     protected static $logOnlyDirty = true;

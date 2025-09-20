@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @mixin IdeHelperOrgUnit
+ */
 class OrgUnit extends Model
 {
     public const TYPES = ['faculty', 'school', 'division', 'department'];

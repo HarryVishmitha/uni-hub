@@ -8,12 +8,16 @@ import Modal from '@/Components/Modal.jsx';
 import TextInput from '@/Components/TextInput.jsx';
 import InputLabel from '@/Components/InputLabel.jsx';
 import InputError from '@/Components/InputError.jsx';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function OrgUnitsIndex() {
     const { props } = usePage();
     const { orgUnits, branches, parentOptions, types, filters, auth } = props;
     const roles = auth?.roles ?? [];
     const isSuperAdmin = roles.includes('super_admin');
+    const { success, error, warning, info } = useAlerts();
 
     const [search, setSearch] = useState(filters?.search ?? '');
     const [branchId, setBranchId] = useState(filters?.branch_id ?? (isSuperAdmin ? '' : branches?.[0]?.id ?? ''));
@@ -44,36 +48,43 @@ export default function Index() {
     }, [orgUnits]);
 
     const onDelete = (unit) => {
-        if (confirm(`Archive ${unit.name}?`)) {
-            router.delete(route('admin.org-units.destroy', unit.id), { preserveScroll: true });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive ${unit.name}?`,
+            action: () => {
+                router.delete(route('admin.org-units.destroy', unit.id), { 
+                    preserveScroll: true,
+                    onSuccess: () => success(`Organizational unit "${unit.name}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive organizational unit')
+                });
+            }
+        });
     };
 
     return (
-        <AdminLayout title="Org Units" header="Org Units">
-            <Head title="Org Units" />
+        <>
+            <Head title="Organizational Units" />
 
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-6 py-4 dark:border-gray-800">
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Academic Structure</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Faculties, schools, divisions, and departments scoped per branch.</p>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Organizational Structure</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Build hierarchical trees of colleges, departments, and other administrative units.</p>
                     </div>
                     <PrimaryButton onClick={() => setIsCreateOpen(true)}>New Org Unit</PrimaryButton>
                 </div>
 
                 <div className="px-6 py-4">
-                    <div className="mb-4 flex flex-wrap items-end gap-4">
-                        <div className="w-full max-w-sm">
-                            <InputLabel htmlFor="unit-search" value="Search" />
-                            <TextInput id="unit-search" className="mt-1 block w-full" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or code" />
+                    <div className="mb-4 grid gap-4 md:grid-cols-2">
+                        <div>
+                            <InputLabel htmlFor="orgunit-search" value="Search" />
+                            <TextInput id="orgunit-search" className="mt-1 block w-full" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or code" />
                         </div>
                         {isSuperAdmin && (
-                            <div className="w-full max-w-xs">
-                                <InputLabel htmlFor="filter-branch" value="Branch" />
+                            <div>
+                                <InputLabel htmlFor="orgunit-branch" value="Branch" />
                                 <select
-                                    id="filter-branch"
-                                    value={branchId ?? ''}
+                                    id="orgunit-branch"
+                                    value={branchId}
                                     onChange={(e) => setBranchId(e.target.value)}
                                     className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                                 >
@@ -86,48 +97,60 @@ export default function Index() {
                         )}
                     </div>
 
-                    <div className="space-y-6">
-                        {byBranch.length ? byBranch.map((group) => (
-                            <section key={group.branch.id} className="rounded-xl border border-gray-200 dark:border-gray-800">
-                                <header className="flex items-center justify-between gap-4 bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
-                                    <div>
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{group.branch.name}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">{group.branch.code}</div>
-                                    </div>
-                                </header>
-                                <div className="divide-y divide-gray-200 dark:divide-gray-800">
-                                    {group.items.map((unit) => (
-                                        <article key={unit.id} className="grid gap-4 px-4 py-3 md:grid-cols-6">
-                                            <div className="md:col-span-2">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{unit.name}</div>
-                                                <div className="text-xs font-mono uppercase tracking-wide text-gray-500 dark:text-gray-400">{unit.code}</div>
-                                            </div>
-                                            <div className="text-sm text-gray-700 dark:text-gray-300">{unit.type}</div>
-                                            <div className="text-sm text-gray-700 dark:text-gray-300">
-                                                {unit.parent ? (
-                                                    <>
-                                                        <div>{unit.parent.name}</div>
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400">{unit.parent.type}</div>
-                                                    </>
-                                                ) : <span className="text-xs text-gray-400">Top level</span>}
-                                            </div>
-                                            <div className="text-sm text-gray-700 dark:text-gray-300">Programs: {unit.programs_count ?? 0}</div>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <SecondaryButton onClick={() => setEditing(unit)}>Edit</SecondaryButton>
-                                                <DangerButton onClick={() => onDelete(unit)} disabled={unit.programs_count > 0}>
-                                                    Archive
-                                                </DangerButton>
-                                            </div>
-                                        </article>
-                                    ))}
-                                </div>
-                            </section>
-                        )) : (
-                            <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                                No org units found.
+                    {byBranch.map((group) => (
+                        <div key={group.branch.id} className="mb-8">
+                            <div className="mb-3 flex items-center justify-between border-b border-gray-200 pb-2 dark:border-gray-800">
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{group.branch.name}</h3>
+                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">{group.items.length} units</span>
                             </div>
-                        )}
-                    </div>
+
+                            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                                    <thead className="bg-gray-50 dark:bg-gray-800/60">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Name</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Type</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Parent Unit</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Programs</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
+                                        {group.items.map((unit) => (
+                                            <tr key={unit.id}>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                                    <div className="font-medium">{unit.name}</div>
+                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{unit.code}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{unit.type}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{unit.parent?.name || '—'}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{unit.programs_count}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${unit.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
+                                                        {unit.is_active ? 'Active' : 'Archived'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <SecondaryButton onClick={() => setEditing(unit)}>Edit</SecondaryButton>
+                                                        <DangerButton onClick={() => onDelete(unit)} disabled={unit.programs_count > 0}>Archive</DangerButton>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ))}
+
+                    {byBranch.length === 0 && (
+                        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
+                            <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">No organizational units found</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Start by creating a new organizational unit.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -135,100 +158,78 @@ export default function Index() {
                 open={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
                 branches={branches}
-                parentOptions={filteredParents}
+                parents={filteredParents}
                 types={types}
-                isSuperAdmin={isSuperAdmin}
+                userBranchId={isSuperAdmin ? null : branches?.[0]?.id}
             />
 
             <EditModal
                 unit={editing}
                 onClose={() => setEditing(null)}
                 branches={branches}
-                parentOptions={parentOptions}
+                parents={parentOptions}
                 types={types}
                 canChangeBranch={isSuperAdmin}
             />
-        </AdminLayout>
+        </>
     );
 }
 
-function CreateModal({ open, onClose, branches, parentOptions, types, isSuperAdmin }) {
-    const initialBranch = isSuperAdmin ? (branches?.[0]?.id ?? '') : branches?.[0]?.id ?? '';
+function CreateModal({ open, onClose, branches, parents, types, userBranchId }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        branch_id: initialBranch,
+        branch_id: userBranchId ?? branches?.[0]?.id ?? '',
         name: '',
         code: '',
         type: types?.[0] ?? 'department',
         parent_id: '',
+        is_active: true,
     });
+    const { success, error } = useAlerts();
 
-    useEffect(() => {
-        if (!open) {
-            reset({
-                branch_id: initialBranch,
-                name: '',
-                code: '',
-                type: types?.[0] ?? 'department',
-                parent_id: '',
-            });
-        }
-    }, [open]);
+    const filteredParents = useMemo(() => {
+        if (!data.branch_id) return [];
+        return parents?.filter((p) => p.branch_id === Number(data.branch_id)) ?? [];
+    }, [data.branch_id, parents]);
 
     const submit = (e) => {
         e.preventDefault();
         post(route('admin.org-units.store'), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Organizational unit "${data.name}" has been created successfully`);
                 reset();
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
-
-    const availableParents = useMemo(() => {
-        if (!data.branch_id) {
-            return parentOptions;
-        }
-        return parentOptions?.filter((option) => option.branch_id === Number(data.branch_id));
-    }, [parentOptions, data.branch_id]);
 
     return (
         <Modal show={open} onClose={() => { reset(); onClose(); }}>
             <form onSubmit={submit} className="space-y-4 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create Org Unit</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create Organizational Unit</h3>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    {isSuperAdmin && (
-                        <div>
-                            <InputLabel htmlFor="create-branch" value="Branch" />
-                            <select
-                                id="create-branch"
-                                value={data.branch_id}
-                                onChange={(e) => setData('branch_id', e.target.value)}
-                                className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                {branches?.map((branch) => (
-                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                ))}
-                            </select>
-                            <InputError className="mt-2" message={errors.branch_id} />
-                        </div>
-                    )}
+                {!userBranchId && (
                     <div>
-                        <InputLabel htmlFor="create-type" value="Type" />
+                        <InputLabel htmlFor="create-branch" value="Branch" />
                         <select
-                            id="create-type"
-                            value={data.type}
-                            onChange={(e) => setData('type', e.target.value)}
+                            id="create-branch"
+                            value={data.branch_id}
+                            onChange={(e) => {
+                                setData('branch_id', e.target.value);
+                                setData('parent_id', '');
+                            }}
                             className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
-                            {types?.map((type) => (
-                                <option key={type} value={type}>{type}</option>
+                            {branches?.map((branch) => (
+                                <option key={branch.id} value={branch.id}>{branch.name}</option>
                             ))}
                         </select>
-                        <InputError className="mt-2" message={errors.type} />
+                        <InputError className="mt-2" message={errors.branch_id} />
                     </div>
-                </div>
+                )}
 
                 <div>
                     <InputLabel htmlFor="create-name" value="Name" />
@@ -238,24 +239,50 @@ function CreateModal({ open, onClose, branches, parentOptions, types, isSuperAdm
 
                 <div>
                     <InputLabel htmlFor="create-code" value="Code" />
-                    <TextInput id="create-code" className="mt-1 block w-full uppercase" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
+                    <TextInput id="create-code" className="mt-1 block w-full" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
                     <InputError className="mt-2" message={errors.code} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="create-parent" value="Parent" />
+                    <InputLabel htmlFor="create-type" value="Type" />
                     <select
-                        id="create-parent"
-                        value={data.parent_id ?? ''}
-                        onChange={(e) => setData('parent_id', e.target.value || '')}
+                        id="create-type"
+                        value={data.type}
+                        onChange={(e) => setData('type', e.target.value)}
                         className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     >
-                        <option value="">Top level</option>
-                        {availableParents?.map((option) => (
-                            <option key={option.id} value={option.id}>{option.name} · {option.type}</option>
+                        {types?.map((type) => (
+                            <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                        ))}
+                    </select>
+                    <InputError className="mt-2" message={errors.type} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="create-parent" value="Parent Unit" />
+                    <select
+                        id="create-parent"
+                        value={data.parent_id}
+                        onChange={(e) => setData('parent_id', e.target.value)}
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        <option value="">None (Top Level)</option>
+                        {filteredParents.map((parent) => (
+                            <option key={parent.id} value={parent.id}>{parent.name}</option>
                         ))}
                     </select>
                     <InputError className="mt-2" message={errors.parent_id} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="create-active"
+                        checked={data.is_active}
+                        onChange={(e) => setData('is_active', e.target.checked)}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    />
+                    <InputLabel htmlFor="create-active" value="Active" className="m-0" />
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -267,32 +294,34 @@ function CreateModal({ open, onClose, branches, parentOptions, types, isSuperAdm
     );
 }
 
-function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBranch }) {
+function EditModal({ unit, onClose, branches, parents, types, canChangeBranch }) {
     const { data, setData, put, processing, errors, reset } = useForm({
         branch_id: '',
         name: '',
         code: '',
         type: '',
         parent_id: '',
+        is_active: true,
     });
+    const { success, error } = useAlerts();
 
     useEffect(() => {
         if (unit) {
-            setData('branch_id', unit.branch.id);
-            setData('name', unit.name);
-            setData('code', unit.code);
-            setData('type', unit.type);
-            setData('parent_id', unit.parent_id ?? '');
+            setData({
+                branch_id: unit.branch_id,
+                name: unit.name,
+                code: unit.code,
+                type: unit.type,
+                parent_id: unit.parent_id ?? '',
+                is_active: unit.is_active,
+            });
         }
     }, [unit]);
 
-    const availableParents = useMemo(() => {
-        if (!unit) {
-            return [];
-        }
-
-        return parentOptions?.filter((option) => option.branch_id === unit.branch.id && option.id !== unit.id) ?? [];
-    }, [parentOptions, unit]);
+    const filteredParents = useMemo(() => {
+        if (!data.branch_id) return [];
+        return parents?.filter((p) => p.branch_id === Number(data.branch_id) && p.id !== unit?.id) ?? [];
+    }, [data.branch_id, parents, unit?.id]);
 
     if (!unit) {
         return null;
@@ -303,15 +332,19 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
         put(route('admin.org-units.update', unit.id), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Organizational unit "${data.name}" has been updated successfully`);
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
     return (
         <Modal show={!!unit} onClose={() => { reset(); onClose(); }}>
             <form onSubmit={submit} className="space-y-4 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Org Unit</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Organizational Unit</h3>
 
                 {canChangeBranch && (
                     <div>
@@ -319,47 +352,19 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
                         <select
                             id="edit-branch"
                             value={data.branch_id}
-                            disabled
-                            className="mt-1 block w-full rounded-xl border-gray-200 bg-gray-100 text-sm text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            onChange={(e) => {
+                                setData('branch_id', e.target.value);
+                                setData('parent_id', '');
+                            }}
+                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
                             {branches?.map((branch) => (
                                 <option key={branch.id} value={branch.id}>{branch.name}</option>
                             ))}
                         </select>
+                        <InputError className="mt-2" message={errors.branch_id} />
                     </div>
                 )}
-
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <InputLabel htmlFor="edit-type" value="Type" />
-                        <select
-                            id="edit-type"
-                            value={data.type}
-                            onChange={(e) => setData('type', e.target.value)}
-                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            {types?.map((type) => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
-                        <InputError className="mt-2" message={errors.type} />
-                    </div>
-                    <div>
-                        <InputLabel htmlFor="edit-parent" value="Parent" />
-                        <select
-                            id="edit-parent"
-                            value={data.parent_id ?? ''}
-                            onChange={(e) => setData('parent_id', e.target.value || '')}
-                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            <option value="">Top level</option>
-                            {availableParents?.map((option) => (
-                                <option key={option.id} value={option.id}>{option.name} · {option.type}</option>
-                            ))}
-                        </select>
-                        <InputError className="mt-2" message={errors.parent_id} />
-                    </div>
-                </div>
 
                 <div>
                     <InputLabel htmlFor="edit-name" value="Name" />
@@ -369,8 +374,50 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
 
                 <div>
                     <InputLabel htmlFor="edit-code" value="Code" />
-                    <TextInput id="edit-code" className="mt-1 block w-full uppercase" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
+                    <TextInput id="edit-code" className="mt-1 block w-full" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
                     <InputError className="mt-2" message={errors.code} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="edit-type" value="Type" />
+                    <select
+                        id="edit-type"
+                        value={data.type}
+                        onChange={(e) => setData('type', e.target.value)}
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        {types?.map((type) => (
+                            <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                        ))}
+                    </select>
+                    <InputError className="mt-2" message={errors.type} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="edit-parent" value="Parent Unit" />
+                    <select
+                        id="edit-parent"
+                        value={data.parent_id}
+                        onChange={(e) => setData('parent_id', e.target.value)}
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        <option value="">None (Top Level)</option>
+                        {filteredParents.map((parent) => (
+                            <option key={parent.id} value={parent.id}>{parent.name}</option>
+                        ))}
+                    </select>
+                    <InputError className="mt-2" message={errors.parent_id} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="edit-active"
+                        checked={data.is_active}
+                        onChange={(e) => setData('is_active', e.target.checked)}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    />
+                    <InputLabel htmlFor="edit-active" value="Active" className="m-0" />
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -379,5 +426,14 @@ function EditModal({ unit, onClose, branches, parentOptions, types, canChangeBra
                 </div>
             </form>
         </Modal>
+    );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
+    return (
+        <AdminLayout title="Organizational Units" header="Organizational Units">
+            <OrgUnitsIndex />
+        </AdminLayout>
     );
 }

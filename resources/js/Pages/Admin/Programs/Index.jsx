@@ -8,12 +8,16 @@ import Modal from '@/Components/Modal.jsx';
 import TextInput from '@/Components/TextInput.jsx';
 import InputLabel from '@/Components/InputLabel.jsx';
 import InputError from '@/Components/InputError.jsx';
+import { useAlerts } from '@/Contexts/AlertContext';
+import { confirmAction } from '@/Utils/AlertUtils';
 
-export default function Index() {
+// Inner component that uses AlertProvider from AdminLayout
+function ProgramsIndex() {
     const { props } = usePage();
     const { programs, branches, orgUnits, filters, auth } = props;
     const roles = auth?.roles ?? [];
     const isSuperAdmin = roles.includes('super_admin');
+    const { success, error, warning, info } = useAlerts();
 
     const [search, setSearch] = useState(filters?.search ?? '');
     const [branchFilter, setBranchFilter] = useState(filters?.branch_id ?? '');
@@ -33,20 +37,27 @@ export default function Index() {
     }, [orgUnits, branchFilter]);
 
     const onDelete = (program) => {
-        if (confirm(`Archive ${program.title}?`)) {
-            router.delete(route('admin.programs.destroy', program.id), { preserveScroll: true });
-        }
+        confirmAction({
+            message: `Are you sure you want to archive ${program.title}?`,
+            action: () => {
+                router.delete(route('admin.programs.destroy', program.id), { 
+                    preserveScroll: true,
+                    onSuccess: () => success(`Program "${program.title}" has been archived successfully`),
+                    onError: (errors) => error(errors?.message || 'Failed to archive program')
+                });
+            }
+        });
     };
 
     return (
-        <AdminLayout title="Programs" header="Programs">
+        <>
             <Head title="Programs" />
 
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-6 py-4 dark:border-gray-800">
                     <div>
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Academic Programs</h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Manage program metadata scoped to each branch.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Manage degree programs and certificates offered by your institution.</p>
                     </div>
                     <PrimaryButton onClick={() => setIsCreateOpen(true)}>New Program</PrimaryButton>
                 </div>
@@ -55,32 +66,30 @@ export default function Index() {
                     <div className="mb-4 grid gap-4 md:grid-cols-3">
                         <div>
                             <InputLabel htmlFor="program-search" value="Search" />
-                            <TextInput id="program-search" className="mt-1 block w-full" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Title" />
+                            <TextInput id="program-search" className="mt-1 block w-full" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Program title or code" />
                         </div>
-                        {isSuperAdmin && (
-                            <div>
-                                <InputLabel htmlFor="program-branch" value="Branch" />
-                                <select
-                                    id="program-branch"
-                                    value={branchFilter ?? ''}
-                                    onChange={(e) => {
-                                        setBranchFilter(e.target.value);
-                                        setOrgUnitFilter('');
-                                    }}
-                                    className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                                >
-                                    <option value="">All branches</option>
-                                    {branches?.map((branch) => (
-                                        <option key={branch.id} value={branch.id}>{branch.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
                         <div>
-                            <InputLabel htmlFor="program-org-unit" value="Org Unit" />
+                            <InputLabel htmlFor="program-branch" value="Branch" />
                             <select
-                                id="program-org-unit"
-                                value={orgUnitFilter ?? ''}
+                                id="program-branch"
+                                value={branchFilter}
+                                onChange={(e) => {
+                                    setBranchFilter(e.target.value);
+                                    setOrgUnitFilter('');
+                                }}
+                                className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                                <option value="">All branches</option>
+                                {branches?.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="program-orgunit" value="Organizational Unit" />
+                            <select
+                                id="program-orgunit"
+                                value={orgUnitFilter}
                                 onChange={(e) => setOrgUnitFilter(e.target.value)}
                                 className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                             >
@@ -97,32 +106,26 @@ export default function Index() {
                             <thead className="bg-gray-50 dark:bg-gray-800/60">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Program</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Org Unit</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Code</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Department</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Branch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Level</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Duration (months)</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Degree</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-900 dark:bg-gray-900">
+                            <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
                                 {programs?.data?.length ? (
                                     programs.data.map((program) => (
                                         <tr key={program.id}>
-                                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                                <div className="font-medium">{program.title}</div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">{program.modality ?? '—'}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                {program.org_unit.name}
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">{program.org_unit.type}</div>
-                                            </td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{program.title}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.code}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.org_unit.name}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.branch.name}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.level ?? '—'}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.duration_months ?? '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.degree_level}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${program.status === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
-                                                    {program.status}
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${program.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
+                                                    {program.is_active ? 'Active' : 'Archived'}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-right">
@@ -163,110 +166,125 @@ export default function Index() {
                 onClose={() => setIsCreateOpen(false)}
                 branches={branches}
                 orgUnits={orgUnits}
-                isSuperAdmin={isSuperAdmin}
             />
 
             <EditModal
                 program={editing}
                 onClose={() => setEditing(null)}
-                orgUnits={orgUnits}
                 branches={branches}
-                isSuperAdmin={isSuperAdmin}
+                orgUnits={orgUnits}
             />
-        </AdminLayout>
+        </>
     );
 }
 
-function CreateModal({ open, onClose, branches, orgUnits, isSuperAdmin }) {
-    const initialBranch = isSuperAdmin ? '' : branches?.[0]?.id ?? '';
-    const { data, setData, post, processing, errors, reset } = useForm({
+function CreateModal({ open, onClose, branches, orgUnits }) {
+    const { data, setData, post, processing, errors, reset, transform } = useForm({
+        branch_id: branches?.[0]?.id ?? '',
         org_unit_id: '',
         title: '',
-        description: '',
-        level: '',
-        modality: '',
-        duration_months: '',
-        status: 'active',
-        branch_id: initialBranch,
+        code: '',
+        degree_level: 'bachelor',
+        length_years: 4,
+        min_credits: 120,
+        meta: {},
+        is_active: true,
     });
+    const { success, error } = useAlerts();
+    const [metaText, setMetaText] = useState('{}');
+    const [metaError, setMetaError] = useState(null);
+
+    const branchOrgUnits = useMemo(() => {
+        return orgUnits?.filter((unit) => unit.branch_id === Number(data.branch_id)) ?? [];
+    }, [orgUnits, data.branch_id]);
 
     useEffect(() => {
-        if (open) {
-            const defaultOrgUnit = isSuperAdmin
-                ? ''
-                : orgUnits?.find((unit) => unit.branch_id === branches?.[0]?.id)?.id ?? '';
-            setData('org_unit_id', defaultOrgUnit);
-        } else {
+        if (branchOrgUnits.length > 0 && !branchOrgUnits.some((unit) => unit.id === Number(data.org_unit_id))) {
+            setData('org_unit_id', branchOrgUnits[0].id);
+        }
+    }, [branchOrgUnits, data.org_unit_id]);
+
+    useEffect(() => {
+        if (!open) {
             reset({
+                branch_id: branches?.[0]?.id ?? '',
                 org_unit_id: '',
                 title: '',
-                description: '',
-                level: '',
-                modality: '',
-                duration_months: '',
-                status: 'active',
-                branch_id: initialBranch,
+                code: '',
+                degree_level: 'bachelor',
+                length_years: 4,
+                min_credits: 120,
+                meta: {},
+                is_active: true,
             });
+            setMetaText('{}');
+            setMetaError(null);
         }
     }, [open]);
 
-    const filteredOrgUnits = useMemo(() => {
-        if (isSuperAdmin) {
-            if (!data.branch_id) {
-                return orgUnits;
-            }
-            return orgUnits?.filter((unit) => unit.branch_id === Number(data.branch_id));
-        }
-        return orgUnits;
-    }, [orgUnits, data.branch_id, isSuperAdmin]);
-
     const submit = (e) => {
         e.preventDefault();
+        
+        let metaObj = {};
+        try {
+            if (metaText.trim()) {
+                metaObj = JSON.parse(metaText);
+            }
+            setMetaError(null);
+        } catch (error) {
+            setMetaError('Invalid JSON format');
+            return;
+        }
+
+        transform((formData) => ({
+            ...formData,
+            meta: metaObj,
+        }));
+
         post(route('admin.programs.store'), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Program "${data.title}" has been created successfully`);
                 reset();
+                setMetaText('{}');
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
     return (
-        <Modal show={open} onClose={() => { reset(); onClose(); }} maxWidth="xl">
+        <Modal show={open} onClose={() => { reset(); onClose(); }}>
             <form onSubmit={submit} className="space-y-4 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create Program</h3>
 
-                {isSuperAdmin && (
-                    <div>
-                        <InputLabel htmlFor="create-branch" value="Branch" />
-                        <select
-                            id="create-branch"
-                            value={data.branch_id}
-                            onChange={(e) => {
-                                setData('branch_id', e.target.value);
-                                setData('org_unit_id', '');
-                            }}
-                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        >
-                            <option value="">Select branch</option>
-                            {branches?.map((branch) => (
-                                <option key={branch.id} value={branch.id}>{branch.name}</option>
-                            ))}
-                        </select>
-                        <InputError className="mt-2" message={errors.branch_id} />
-                    </div>
-                )}
+                <div>
+                    <InputLabel htmlFor="create-branch" value="Branch" />
+                    <select
+                        id="create-branch"
+                        value={data.branch_id}
+                        onChange={(e) => setData('branch_id', e.target.value)}
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        {branches?.map((branch) => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))}
+                    </select>
+                    <InputError className="mt-2" message={errors.branch_id} />
+                </div>
 
                 <div>
-                    <InputLabel htmlFor="create-org-unit" value="Org Unit" />
+                    <InputLabel htmlFor="create-orgunit" value="Department/School" />
                     <select
-                        id="create-org-unit"
+                        id="create-orgunit"
                         value={data.org_unit_id}
                         onChange={(e) => setData('org_unit_id', e.target.value)}
                         className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     >
-                        <option value="">Select org unit</option>
-                        {filteredOrgUnits?.map((unit) => (
+                        <option value="">Select a department</option>
+                        {branchOrgUnits.map((unit) => (
                             <option key={unit.id} value={unit.id}>{unit.name}</option>
                         ))}
                     </select>
@@ -274,52 +292,67 @@ function CreateModal({ open, onClose, branches, orgUnits, isSuperAdmin }) {
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="create-title" value="Title" />
+                    <InputLabel htmlFor="create-title" value="Program Title" />
                     <TextInput id="create-title" className="mt-1 block w-full" value={data.title} onChange={(e) => setData('title', e.target.value)} required />
                     <InputError className="mt-2" message={errors.title} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="create-description" value="Description" />
-                    <textarea
-                        id="create-description"
-                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.description}
-                        onChange={(e) => setData('description', e.target.value)}
-                        rows={3}
-                    />
-                    <InputError className="mt-2" message={errors.description} />
+                    <InputLabel htmlFor="create-code" value="Program Code" />
+                    <TextInput id="create-code" className="mt-1 block w-full" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
+                    <InputError className="mt-2" message={errors.code} />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <div>
-                        <InputLabel htmlFor="create-level" value="Level" />
-                        <TextInput id="create-level" className="mt-1 block w-full" value={data.level} onChange={(e) => setData('level', e.target.value)} />
-                        <InputError className="mt-2" message={errors.level} />
+                        <InputLabel htmlFor="create-level" value="Degree Level" />
+                        <select
+                            id="create-level"
+                            value={data.degree_level}
+                            onChange={(e) => setData('degree_level', e.target.value)}
+                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                            <option value="certificate">Certificate</option>
+                            <option value="associate">Associate</option>
+                            <option value="bachelor">Bachelor</option>
+                            <option value="master">Master</option>
+                            <option value="doctorate">Doctorate</option>
+                        </select>
+                        <InputError className="mt-2" message={errors.degree_level} />
                     </div>
                     <div>
-                        <InputLabel htmlFor="create-modality" value="Modality" />
-                        <TextInput id="create-modality" className="mt-1 block w-full" value={data.modality} onChange={(e) => setData('modality', e.target.value)} />
-                        <InputError className="mt-2" message={errors.modality} />
+                        <InputLabel htmlFor="create-years" value="Length (Years)" />
+                        <TextInput type="number" min="1" id="create-years" className="mt-1 block w-full" value={data.length_years} onChange={(e) => setData('length_years', e.target.value)} required />
+                        <InputError className="mt-2" message={errors.length_years} />
                     </div>
                     <div>
-                        <InputLabel htmlFor="create-duration" value="Duration (months)" />
-                        <TextInput
-                            id="create-duration"
-                            type="number"
-                            min="1"
-                            className="mt-1 block w-full"
-                            value={data.duration_months}
-                            onChange={(e) => setData('duration_months', e.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.duration_months} />
+                        <InputLabel htmlFor="create-credits" value="Min Credits" />
+                        <TextInput type="number" min="0" id="create-credits" className="mt-1 block w-full" value={data.min_credits} onChange={(e) => setData('min_credits', e.target.value)} required />
+                        <InputError className="mt-2" message={errors.min_credits} />
                     </div>
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="create-status" value="Status" />
-                    <TextInput id="create-status" className="mt-1 block w-full" value={data.status} onChange={(e) => setData('status', e.target.value)} />
-                    <InputError className="mt-2" message={errors.status} />
+                    <InputLabel htmlFor="create-meta" value="Metadata (JSON)" />
+                    <textarea
+                        id="create-meta"
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        value={metaText}
+                        onChange={(e) => setMetaText(e.target.value)}
+                        rows={3}
+                    />
+                    <InputError className="mt-2" message={metaError || errors.meta} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="create-active"
+                        checked={data.is_active}
+                        onChange={(e) => setData('is_active', e.target.checked)}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    />
+                    <InputLabel htmlFor="create-active" value="Active" className="m-0" />
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -331,41 +364,42 @@ function CreateModal({ open, onClose, branches, orgUnits, isSuperAdmin }) {
     );
 }
 
-function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
-    const { data, setData, put, processing, errors, reset } = useForm({
+function EditModal({ program, onClose, branches, orgUnits }) {
+    const { data, setData, put, processing, errors, reset, transform } = useForm({
+        branch_id: '',
         org_unit_id: '',
         title: '',
-        description: '',
-        level: '',
-        modality: '',
-        duration_months: '',
-        status: '',
-        branch_id: '',
+        code: '',
+        degree_level: '',
+        length_years: '',
+        min_credits: '',
+        meta: {},
+        is_active: true,
     });
+    const { success, error } = useAlerts();
+    const [metaText, setMetaText] = useState('{}');
+    const [metaError, setMetaError] = useState(null);
 
     useEffect(() => {
         if (program) {
-            setData((current) => ({
-                ...current,
-                org_unit_id: program.org_unit.id,
+            setData({
+                branch_id: program.branch_id,
+                org_unit_id: program.org_unit_id,
                 title: program.title,
-                description: program.description ?? '',
-                level: program.level ?? '',
-                modality: program.modality ?? '',
-                duration_months: program.duration_months ?? '',
-                status: program.status ?? '',
-                branch_id: program.branch.id,
-            }));
+                code: program.code,
+                degree_level: program.degree_level,
+                length_years: program.length_years,
+                min_credits: program.min_credits,
+                meta: program.meta,
+                is_active: program.is_active,
+            });
+            setMetaText(JSON.stringify(program.meta ?? {}, null, 2));
         }
     }, [program]);
 
-    const filteredOrgUnits = useMemo(() => {
-        if (!program) {
-            return [];
-        }
-
-        return orgUnits?.filter((unit) => unit.branch_id === program.branch.id) ?? [];
-    }, [orgUnits, program]);
+    const branchOrgUnits = useMemo(() => {
+        return orgUnits?.filter((unit) => unit.branch_id === Number(data.branch_id)) ?? [];
+    }, [orgUnits, data.branch_id]);
 
     if (!program) {
         return null;
@@ -373,38 +407,65 @@ function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
 
     const submit = (e) => {
         e.preventDefault();
+        
+        let metaObj = {};
+        try {
+            if (metaText.trim()) {
+                metaObj = JSON.parse(metaText);
+            }
+            setMetaError(null);
+        } catch (error) {
+            setMetaError('Invalid JSON format');
+            return;
+        }
+
+        transform((formData) => ({
+            ...formData,
+            meta: metaObj,
+        }));
+
         put(route('admin.programs.update', program.id), {
             preserveScroll: true,
             onSuccess: () => {
+                success(`Program "${data.title}" has been updated successfully`);
                 onClose();
             },
+            onError: (errors) => {
+                error(Object.values(errors).flat().join('\n'));
+            }
         });
     };
 
     return (
-        <Modal show={!!program} onClose={() => { reset(); onClose(); }} maxWidth="xl">
+        <Modal show={!!program} onClose={() => { reset(); onClose(); }}>
             <form onSubmit={submit} className="space-y-4 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Program</h3>
 
-                {isSuperAdmin && (
-                    <div>
-                        <InputLabel value="Branch" />
-                        <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                            {program.branch.name}
-                        </div>
-                    </div>
-                )}
+                <div>
+                    <InputLabel htmlFor="edit-branch" value="Branch" />
+                    <select
+                        id="edit-branch"
+                        value={data.branch_id}
+                        onChange={(e) => setData('branch_id', e.target.value)}
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                        {branches?.map((branch) => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))}
+                    </select>
+                    <InputError className="mt-2" message={errors.branch_id} />
+                </div>
 
                 <div>
-                    <InputLabel htmlFor="edit-org-unit" value="Org Unit" />
+                    <InputLabel htmlFor="edit-orgunit" value="Department/School" />
                     <select
-                        id="edit-org-unit"
+                        id="edit-orgunit"
                         value={data.org_unit_id}
                         onChange={(e) => setData('org_unit_id', e.target.value)}
                         className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     >
-                        <option value="" disabled>{filteredOrgUnits.length ? 'Select org unit' : 'No org units available'}</option>
-                        {filteredOrgUnits?.map((unit) => (
+                        <option value="">Select a department</option>
+                        {branchOrgUnits.map((unit) => (
                             <option key={unit.id} value={unit.id}>{unit.name}</option>
                         ))}
                     </select>
@@ -412,52 +473,67 @@ function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="edit-title" value="Title" />
+                    <InputLabel htmlFor="edit-title" value="Program Title" />
                     <TextInput id="edit-title" className="mt-1 block w-full" value={data.title} onChange={(e) => setData('title', e.target.value)} required />
                     <InputError className="mt-2" message={errors.title} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="edit-description" value="Description" />
-                    <textarea
-                        id="edit-description"
-                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                        value={data.description}
-                        onChange={(e) => setData('description', e.target.value)}
-                        rows={3}
-                    />
-                    <InputError className="mt-2" message={errors.description} />
+                    <InputLabel htmlFor="edit-code" value="Program Code" />
+                    <TextInput id="edit-code" className="mt-1 block w-full" value={data.code} onChange={(e) => setData('code', e.target.value)} required />
+                    <InputError className="mt-2" message={errors.code} />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <div>
-                        <InputLabel htmlFor="edit-level" value="Level" />
-                        <TextInput id="edit-level" className="mt-1 block w-full" value={data.level} onChange={(e) => setData('level', e.target.value)} />
-                        <InputError className="mt-2" message={errors.level} />
+                        <InputLabel htmlFor="edit-level" value="Degree Level" />
+                        <select
+                            id="edit-level"
+                            value={data.degree_level}
+                            onChange={(e) => setData('degree_level', e.target.value)}
+                            className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        >
+                            <option value="certificate">Certificate</option>
+                            <option value="associate">Associate</option>
+                            <option value="bachelor">Bachelor</option>
+                            <option value="master">Master</option>
+                            <option value="doctorate">Doctorate</option>
+                        </select>
+                        <InputError className="mt-2" message={errors.degree_level} />
                     </div>
                     <div>
-                        <InputLabel htmlFor="edit-modality" value="Modality" />
-                        <TextInput id="edit-modality" className="mt-1 block w-full" value={data.modality} onChange={(e) => setData('modality', e.target.value)} />
-                        <InputError className="mt-2" message={errors.modality} />
+                        <InputLabel htmlFor="edit-years" value="Length (Years)" />
+                        <TextInput type="number" min="1" id="edit-years" className="mt-1 block w-full" value={data.length_years} onChange={(e) => setData('length_years', e.target.value)} required />
+                        <InputError className="mt-2" message={errors.length_years} />
                     </div>
                     <div>
-                        <InputLabel htmlFor="edit-duration" value="Duration (months)" />
-                        <TextInput
-                            id="edit-duration"
-                            type="number"
-                            min="1"
-                            className="mt-1 block w-full"
-                            value={data.duration_months}
-                            onChange={(e) => setData('duration_months', e.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.duration_months} />
+                        <InputLabel htmlFor="edit-credits" value="Min Credits" />
+                        <TextInput type="number" min="0" id="edit-credits" className="mt-1 block w-full" value={data.min_credits} onChange={(e) => setData('min_credits', e.target.value)} required />
+                        <InputError className="mt-2" message={errors.min_credits} />
                     </div>
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="edit-status" value="Status" />
-                    <TextInput id="edit-status" className="mt-1 block w-full" value={data.status} onChange={(e) => setData('status', e.target.value)} />
-                    <InputError className="mt-2" message={errors.status} />
+                    <InputLabel htmlFor="edit-meta" value="Metadata (JSON)" />
+                    <textarea
+                        id="edit-meta"
+                        className="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                        value={metaText}
+                        onChange={(e) => setMetaText(e.target.value)}
+                        rows={3}
+                    />
+                    <InputError className="mt-2" message={metaError || errors.meta} />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        id="edit-active"
+                        checked={data.is_active}
+                        onChange={(e) => setData('is_active', e.target.checked)}
+                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    />
+                    <InputLabel htmlFor="edit-active" value="Active" className="m-0" />
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -466,5 +542,14 @@ function EditModal({ program, onClose, orgUnits, branches, isSuperAdmin }) {
                 </div>
             </form>
         </Modal>
+    );
+}
+
+// Wrap the component with AdminLayout which provides AlertProvider
+export default function Index() {
+    return (
+        <AdminLayout title="Programs" header="Programs">
+            <ProgramsIndex />
+        </AdminLayout>
     );
 }

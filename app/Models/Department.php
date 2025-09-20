@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\School;
 
+/**
+ * @mixin IdeHelperDepartment
+ */
 class Department extends Model
 {
     use HasFactory;

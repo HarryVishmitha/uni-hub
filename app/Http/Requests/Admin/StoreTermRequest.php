@@ -31,11 +31,13 @@ class StoreTermRequest extends FormRequest
         return [
             'branch_id' => ['required', Rule::exists('branches', 'id')],
             'title' => ['required', 'string', 'min:3', 'max:255'],
+            'code' => ['nullable', 'string', 'max:50'],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
             'add_drop_start' => ['nullable', 'date', 'after_or_equal:start_date'],
             'add_drop_end' => ['nullable', 'date', 'after_or_equal:add_drop_start', 'before_or_equal:end_date'],
             'status' => ['required', Rule::in(Term::STATUSES)],
+            'description' => ['nullable', 'string'],
         ];
     }
 
