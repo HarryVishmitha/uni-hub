@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             CourseSeeder::class,
             CourseOutcomeSeeder::class,
             CoursePrerequisiteSeeder::class,
+            TimetableSeeder::class,
         ]);
     }
 }

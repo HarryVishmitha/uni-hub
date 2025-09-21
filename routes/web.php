@@ -1,14 +1,20 @@
 <?php
 
+use App\Http\Controllers\Admin\AppointmentController;
 use App\Http\Controllers\Admin\BranchController;
-use App\Http\Controllers\Admin\CurriculumController;
-use App\Http\Controllers\Admin\DashboardApiController;
-use App\Http\Controllers\Admin\DemoController;
 use App\Http\Controllers\Admin\CourseController as AdminCourseController;
 use App\Http\Controllers\Admin\CourseOutcomeController;
 use App\Http\Controllers\Admin\CoursePrerequisiteController;
+use App\Http\Controllers\Admin\CurriculumController;
+use App\Http\Controllers\Admin\DashboardApiController;
+use App\Http\Controllers\Admin\DemoController;
 use App\Http\Controllers\Admin\OrgUnitController;
 use App\Http\Controllers\Admin\ProgramController;
+use App\Http\Controllers\Admin\RoomApiController;
+use App\Http\Controllers\Admin\RoomController;
+use App\Http\Controllers\Admin\SectionApiController;
+use App\Http\Controllers\Admin\SectionController;
+use App\Http\Controllers\Admin\SectionMeetingController;
 use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Admin\UniversityController;
 use App\Http\Controllers\ProfileController;
@@ -50,6 +56,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::get('metrics', [DashboardApiController::class, 'metrics'])->name('metrics');
                 Route::get('activities', [DashboardApiController::class, 'activities'])->name('activities');
                 Route::get('quick-actions', [DashboardApiController::class, 'quickActions'])->name('quick-actions');
+                Route::get('rooms', [RoomApiController::class, 'index'])->name('rooms.index');
+                Route::post('sections/{section}/conflicts', [SectionApiController::class, 'conflicts'])->name('sections.conflicts');
+                Route::get('sections/{section}/ics', [SectionApiController::class, 'ics'])->name('sections.ics');
             });
 
             Route::post('terms/bulk-status', [TermController::class, 'bulkStatus'])->name('terms.bulk-status');
@@ -61,6 +70,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('courses/{course}/outcomes/{outcome}', [CourseOutcomeController::class, 'destroy'])->name('courses.outcomes.destroy');
             Route::post('courses/{course}/prerequisites', [CoursePrerequisiteController::class, 'store'])->name('courses.prerequisites.store');
             Route::delete('courses/{course}/prerequisites/{prerequisite}', [CoursePrerequisiteController::class, 'destroy'])->name('courses.prerequisites.destroy');
+
+            Route::resource('rooms', RoomController::class)->except(['show']);
+
+            Route::post('sections/bulk-status', [SectionController::class, 'bulkStatus'])->name('sections.bulk-status');
+            Route::resource('sections', SectionController::class);
+
+            Route::post('sections/{section}/meetings', [SectionMeetingController::class, 'store'])->name('sections.meetings.store');
+            Route::put('sections/{section}/meetings/{meeting}', [SectionMeetingController::class, 'update'])->name('sections.meetings.update');
+            Route::delete('sections/{section}/meetings/{meeting}', [SectionMeetingController::class, 'destroy'])->name('sections.meetings.destroy');
+
+            Route::post('sections/{section}/appointments', [AppointmentController::class, 'store'])->name('sections.appointments.store');
+            Route::put('sections/{section}/appointments/{appointment}', [AppointmentController::class, 'update'])->name('sections.appointments.update');
+            Route::delete('sections/{section}/appointments/{appointment}', [AppointmentController::class, 'destroy'])->name('sections.appointments.destroy');
             
             // Demo routes
             Route::get('demo', [DemoController::class, 'index'])->name('demo.index');

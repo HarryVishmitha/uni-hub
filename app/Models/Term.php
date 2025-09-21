@@ -67,4 +67,9 @@ class Term extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+
+    public function sections()
+    {
+        return $this->hasMany(Section::class);
+    }
 }

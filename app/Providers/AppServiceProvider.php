@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\Appointment;
 use App\Models\Branch;
 use App\Models\Course;
 use App\Models\Curriculum;
+use App\Models\Room;
 use App\Models\OrgUnit;
 use App\Models\Program;
+use App\Models\Section;
+use App\Models\SectionMeeting;
 use App\Models\Term;
 use App\Models\University;
 use Illuminate\Support\Facades\Gate;
@@ -40,5 +44,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Curriculum::class, \App\Policies\CurriculumPolicy::class);
         Gate::policy(Term::class, \App\Policies\TermPolicy::class);
         Gate::policy(Course::class, \App\Policies\CoursePolicy::class);
+        Gate::policy(Room::class, \App\Policies\RoomPolicy::class);
+        Gate::policy(Section::class, \App\Policies\SectionPolicy::class);
+        Gate::policy(SectionMeeting::class, \App\Policies\SectionMeetingPolicy::class);
+        Gate::policy(Appointment::class, \App\Policies\AppointmentPolicy::class);
     }
 }

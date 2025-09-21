@@ -89,6 +89,11 @@ class Course extends Model
         )->using(CoursePrerequisite::class)->withPivot('min_grade')->withTimestamps();
     }
 
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
+
     public function getBranchIdAttribute(): ?int
     {
         return $this->orgUnit?->branch_id;

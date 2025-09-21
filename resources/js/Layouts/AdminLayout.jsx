@@ -100,6 +100,8 @@ export default function AdminLayout({ title, header, children, showHeaderThemeTo
             { name: 'Programs', routeName: 'admin.programs.index', icon: 'lucide:notebook-tabs', perm: ['manage-programs', 'view-programs'] },
             { name: 'Curricula', routeName: 'admin.curricula.index', icon: 'lucide:list-checks', perm: ['manage-curricula', 'view-curricula'] },
             { name: 'Courses', routeName: 'admin.courses.index', icon: 'lucide:book-open', perm: ['manage-courses', 'view-courses'] },
+            { name: 'Rooms', routeName: 'admin.rooms.index', icon: 'lucide:door-open', perm: null },
+            { name: 'Sections', routeName: 'admin.sections.index', icon: 'lucide:layers', perm: null },
             { name: 'Requirements', routeName: 'admin.requirements.index', icon: 'lucide:clipboard-check', perm: ['manage-requirements', 'view-requirements'] },
 
             // User Management
@@ -481,11 +483,18 @@ function UserMenu({ user }) {
                 onClick={() => setOpen((v) => !v)}
                 className="inline-flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-                <img
-                    src={user?.profile_photo_url || '/assets/avatar.png'}
-                    alt="Avatar"
-                    className="h-8 w-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
-                />
+                {user?.profile_photo_url ? (
+                    <img
+                        src={user?.profile_photo_url || '/assets/avatar.png'}
+                        alt="Avatar"
+                        className="h-8 w-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                    />
+                ) : (
+                    <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm">
+                        <Icon icon="lucide:user" className="text-gray-500 dark:text-gray-400 text-lg" />
+                    </div>
+                )}
+
                 <div className="hidden md:block text-left">
                     <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{user?.name || 'User'}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{user?.email || ''}</div>

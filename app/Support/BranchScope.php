@@ -9,7 +9,7 @@ class BranchScope
 {
     public static function allows(User $user, ?int $branchId): bool
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->hasRole('admin')) {
             return true;
         }
 
@@ -22,7 +22,7 @@ class BranchScope
 
     public static function resolveActiveBranch(User $user, ?Branch $branch = null): ?Branch
     {
-        if ($user->isSuperAdmin()) {
+        if ($user->isSuperAdmin() || $user->hasRole('admin')) {
             return $branch;
         }
 
