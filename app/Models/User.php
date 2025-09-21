@@ -63,6 +63,21 @@ class User extends Authenticatable
         return $this->hasMany(Appointment::class);
     }
 
+    public function programEnrollments(): HasMany
+    {
+        return $this->hasMany(ProgramEnrollment::class, 'student_id');
+    }
+
+    public function sectionEnrollments(): HasMany
+    {
+        return $this->hasMany(SectionEnrollment::class, 'student_id');
+    }
+
+    public function transcripts(): HasMany
+    {
+        return $this->hasMany(Transcript::class, 'student_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole('super_admin');

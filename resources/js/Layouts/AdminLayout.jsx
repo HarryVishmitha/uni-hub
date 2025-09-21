@@ -109,12 +109,13 @@ export default function AdminLayout({ title, header, children, showHeaderThemeTo
             { name: 'Students', routeName: 'admin.students.index', icon: 'lucide:users', perm: ['manage-students', 'view-students'] },
             { name: 'Faculty', routeName: 'admin.faculty.index', icon: 'lucide:graduation-cap', perm: ['manage-faculty', 'view-faculty'] },
             { name: 'Staff', routeName: 'admin.staff.index', icon: 'lucide:briefcase', perm: ['manage-staff', 'view-staff'] },
-            { name: 'Enrollments', routeName: 'admin.enrollments.index', icon: 'lucide:clipboard-list', perm: ['manage-enrollments', 'view-enrollments'] },
+            { name: 'Transcripts', routeName: 'admin.transcripts.index', icon: 'lucide:clipboard-list', perm: ['manage-enrollments', 'view-enrollments'] },
 
             // System Administration
             { type: 'header', name: 'System' },
             { name: 'User Accounts', routeName: 'admin.users.index', icon: 'lucide:user-cog', perm: 'manage-users' },
             { name: 'Roles & Permissions', routeName: 'admin.roles.index', icon: 'lucide:shield', perm: 'manage-roles' },
+            { name: 'Permissions', routeName: 'admin.permissions.index', icon: 'lucide:key', perm: 'manage-permissions' },
             { name: 'Settings', routeName: 'admin.settings.index', icon: 'lucide:settings', perm: 'manage-settings' },
             { name: 'Audit Logs', routeName: 'admin.audit-logs.index', icon: 'lucide:history', perm: 'view-logs' },
 

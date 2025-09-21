@@ -9,8 +9,11 @@ use App\Models\Course;
 use App\Models\CourseOutcome;
 use App\Models\CoursePrerequisite;
 use App\Models\OrgUnit;
-use App\Models\Term;
 use App\Models\Program;
+use App\Models\ProgramEnrollment;
+use App\Models\SectionEnrollment;
+use App\Models\Term;
+use App\Models\Transcript;
 use App\Support\BranchScope;
 use Closure;
 use Illuminate\Http\Request;
@@ -85,6 +88,10 @@ class ActsOnBranch
                     return $parameter->branch;
                 }
 
+                if ($parameter instanceof ProgramEnrollment) {
+                    return $parameter->program?->branch;
+                }
+
                 if ($parameter instanceof Curriculum) {
                     return $parameter->branch;
                 }
@@ -106,6 +113,14 @@ class ActsOnBranch
                 }
 
                 if ($parameter instanceof CoursePrerequisite) {
+                    return $parameter->course?->orgUnit?->branch;
+                }
+
+                if ($parameter instanceof SectionEnrollment) {
+                    return $parameter->section?->course?->orgUnit?->branch;
+                }
+
+                if ($parameter instanceof Transcript) {
                     return $parameter->course?->orgUnit?->branch;
                 }
             }

@@ -28,6 +28,8 @@ class TimetableSeeder extends Seeder
                 ->state(['branch_id' => $branch->id])
                 ->create();
 
+            fake()->unique(true);
+
             $terms = Term::query()
                 ->where('branch_id', $branch->id)
                 ->whereIn('status', ['planned', 'active'])

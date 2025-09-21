@@ -90,4 +90,9 @@ class Branch extends Model
     {
         return $this->hasMany(Room::class);
     }
+
+    public function terms()
+    {
+        return $this->hasMany(Term::class);
+    }
 }

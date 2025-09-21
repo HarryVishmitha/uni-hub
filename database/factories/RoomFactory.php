@@ -18,7 +18,7 @@ class RoomFactory extends Factory
         return [
             'branch_id' => Branch::factory(),
             'building' => fake()->randomElement($buildings),
-            'room_no' => strtoupper(fake()->bothify('###')),
+            'room_no' => strtoupper(fake()->unique()->bothify('??###')),
             'name' => fake()->optional()->words(2, true),
             'seats' => fake()->numberBetween(20, 140),
             'equipment' => fake()->randomElements($equipmentPool, fake()->numberBetween(1, 3)),

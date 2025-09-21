@@ -1,4 +1,4 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout.jsx';
 import PrimaryButton from '@/Components/PrimaryButton.jsx';
@@ -106,10 +106,10 @@ function ProgramsIndex() {
                             <thead className="bg-gray-50 dark:bg-gray-800/60">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Program</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Code</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Department</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Org Unit</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Branch</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Degree</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Level</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Modality</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
                                 </tr>
@@ -119,17 +119,20 @@ function ProgramsIndex() {
                                     programs.data.map((program) => (
                                         <tr key={program.id}>
                                             <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{program.title}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.code}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.org_unit.name}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.branch.name}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.degree_level}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.org_unit?.name}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.branch?.name}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.level ?? '—'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{program.modality ?? '—'}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${program.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
-                                                    {program.is_active ? 'Active' : 'Archived'}
+                                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-500/10 dark:text-slate-300">
+                                                    {program.status}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <Link href={route('admin.programs.enrollments.index', program.id)}>
+                                                        <SecondaryButton>Enrollments</SecondaryButton>
+                                                    </Link>
                                                     <SecondaryButton onClick={() => setEditing(program)}>Edit</SecondaryButton>
                                                     <DangerButton onClick={() => onDelete(program)}>Archive</DangerButton>
                                                 </div>

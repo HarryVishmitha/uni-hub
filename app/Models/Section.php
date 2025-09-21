@@ -106,4 +106,9 @@ class Section extends Model
     {
         return $this->appointments()->where('role', 'ta');
     }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(SectionEnrollment::class);
+    }
 }

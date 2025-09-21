@@ -69,6 +69,11 @@ class Course extends Model
         return $this->hasMany(Enrollment::class);
     }
 
+    public function transcripts(): HasMany
+    {
+        return $this->hasMany(Transcript::class);
+    }
+
     public function prerequisites(): BelongsToMany
     {
         return $this->belongsToMany(

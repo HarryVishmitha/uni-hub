@@ -36,6 +36,10 @@ class RbacSeeder extends Seeder
             'view-courses',
             'manage-users',
             'view-users',
+            'manage-roles',
+            'view-logs',
+            'manage-permissions',
+            'view-permissions',
         ];
 
         foreach ($permissions as $permission) {
@@ -63,6 +67,10 @@ class RbacSeeder extends Seeder
                 'view-courses',
                 'manage-users',
                 'view-users',
+                'manage-roles',
+                'manage-permissions',
+                'view-permissions',
+                'view-logs',
             ],
             'branch_admin' => [
                 'view-branches',

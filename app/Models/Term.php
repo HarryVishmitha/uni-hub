@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -68,8 +70,23 @@ class Term extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function sections()
+    public function sections(): HasMany
     {
         return $this->hasMany(Section::class);
+    }
+
+    public function programEnrollments(): HasMany
+    {
+        return $this->hasMany(ProgramEnrollment::class, 'start_term_id');
+    }
+
+    public function sectionEnrollments(): HasManyThrough
+    {
+        return $this->hasManyThrough(SectionEnrollment::class, Section::class);
+    }
+
+    public function transcripts(): HasMany
+    {
+        return $this->hasMany(Transcript::class);
     }
 }

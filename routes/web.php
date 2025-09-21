@@ -10,13 +10,22 @@ use App\Http\Controllers\Admin\DashboardApiController;
 use App\Http\Controllers\Admin\DemoController;
 use App\Http\Controllers\Admin\OrgUnitController;
 use App\Http\Controllers\Admin\ProgramController;
+use App\Http\Controllers\Admin\ProgramEnrollmentController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoomApiController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\SectionApiController;
 use App\Http\Controllers\Admin\SectionController;
+use App\Http\Controllers\Admin\SectionEnrollmentController;
 use App\Http\Controllers\Admin\SectionMeetingController;
 use App\Http\Controllers\Admin\TermController;
+use App\Http\Controllers\Admin\TranscriptController;
 use App\Http\Controllers\Admin\UniversityController;
+use App\Http\Controllers\Account\CourseController as AccountCourseController;
+use App\Http\Controllers\Account\TimetableController as AccountTimetableController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -40,12 +49,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::middleware(['role:student'])->group(function () {
+        Route::get('/account/my-courses', [AccountCourseController::class, 'index'])->name('account.courses.index');
+        Route::get('/account/my-timetable', [AccountTimetableController::class, 'index'])->name('account.timetable.index');
+        Route::get('/account/my-timetable/ics', [AccountTimetableController::class, 'ics'])->name('account.timetable.ics');
+    });
+
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(['role:super_admin|admin|branch_admin', 'acts_on_branch'])->group(function () {
             Route::get('dashboard', fn () => Inertia::render('Admin/Dashboard'))->name('dashboard');
             Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('org-units', OrgUnitController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::resource('programs', ProgramController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::get('programs/{program}/enrollments', [ProgramEnrollmentController::class, 'index'])->name('programs.enrollments.index');
+            Route::post('programs/{program}/enrollments', [ProgramEnrollmentController::class, 'store'])->name('programs.enrollments.store');
+            Route::patch('program-enrollments/{program_enrollment}', [ProgramEnrollmentController::class, 'update'])->name('programs.enrollments.update');
+            Route::delete('programs/{program}/enrollments/{program_enrollment}', [ProgramEnrollmentController::class, 'destroy'])->name('programs.enrollments.destroy');
 
             Route::resource('curricula', CurriculumController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::post('curricula/{curriculum}/requirements', [CurriculumController::class, 'storeRequirement'])->name('curricula.requirements.store');
@@ -74,7 +93,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('rooms', RoomController::class)->except(['show']);
 
             Route::post('sections/bulk-status', [SectionController::class, 'bulkStatus'])->name('sections.bulk-status');
+            Route::get('sections/{section}/roster/manage', [SectionController::class, 'roster'])->name('sections.roster.manage');
             Route::resource('sections', SectionController::class);
+
+            Route::post('sections/{section}/enroll', [SectionEnrollmentController::class, 'store'])->name('sections.enroll');
+            Route::post('sections/{section}/enrollments/bulk', [SectionEnrollmentController::class, 'bulk'])->name('sections.enrollments.bulk');
+            Route::patch('sections/{section}/enrollments/{enrollment}', [SectionEnrollmentController::class, 'update'])->name('sections.enrollments.update');
+            Route::delete('sections/{section}/enrollments/{enrollment}', [SectionEnrollmentController::class, 'destroy'])->name('sections.enrollments.destroy');
+            Route::get('sections/{section}/roster', [SectionEnrollmentController::class, 'roster'])->name('sections.roster');
 
             Route::post('sections/{section}/meetings', [SectionMeetingController::class, 'store'])->name('sections.meetings.store');
             Route::put('sections/{section}/meetings/{meeting}', [SectionMeetingController::class, 'update'])->name('sections.meetings.update');
@@ -83,6 +109,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('sections/{section}/appointments', [AppointmentController::class, 'store'])->name('sections.appointments.store');
             Route::put('sections/{section}/appointments/{appointment}', [AppointmentController::class, 'update'])->name('sections.appointments.update');
             Route::delete('sections/{section}/appointments/{appointment}', [AppointmentController::class, 'destroy'])->name('sections.appointments.destroy');
+
+            Route::get('transcripts', [TranscriptController::class, 'index'])->name('transcripts.index');
+            Route::post('transcripts', [TranscriptController::class, 'store'])->name('transcripts.store');
+            Route::patch('transcripts/{transcript}', [TranscriptController::class, 'update'])->name('transcripts.update');
+            Route::delete('transcripts/{transcript}', [TranscriptController::class, 'destroy'])->name('transcripts.destroy');
             
             // Demo routes
             Route::get('demo', [DemoController::class, 'index'])->name('demo.index');
@@ -107,12 +138,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('faculty', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Faculty Management']))->name('faculty.index');
             Route::get('staff', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Staff Management']))->name('staff.index');
             Route::get('enrollments', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Enrollments']))->name('enrollments.index');
-            
+
             // System administration routes (placeholder for super admin)
-            Route::get('users', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'User Accounts']))->name('users.index');
-            Route::get('roles', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Roles & Permissions']))->name('roles.index');
+            Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::resource('roles', RoleController::class)->only(['index', 'store', 'update', 'destroy']);
+            Route::resource('permissions', PermissionController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::get('settings', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'System Settings']))->name('settings.index');
-            Route::get('audit-logs', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Audit Logs']))->name('audit-logs.index');
+            Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             
             // Tools routes (placeholder for super admin)
             Route::get('tools/import', fn () => Inertia::render('Admin/ComingSoon', ['feature' => 'Import Data']))->name('tools.import');

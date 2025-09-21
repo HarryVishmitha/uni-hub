@@ -7,8 +7,10 @@ use App\Http\Requests\Admin\StoreSectionRequest;
 use App\Http\Requests\Admin\UpdateSectionRequest;
 use App\Models\Branch;
 use App\Models\Course;
+use App\Models\Program;
 use App\Models\Room;
 use App\Models\Section;
+use App\Models\SectionEnrollment;
 use App\Models\Term;
 use App\Models\User;
 use App\Support\BranchScope;
@@ -133,6 +135,70 @@ class SectionController extends Controller
     public function show(Section $section): RedirectResponse
     {
         return redirect()->route('admin.sections.edit', $section);
+    }
+
+    public function roster(Request $request, Section $section): Response
+    {
+        $this->authorize('view', $section);
+
+        $section->load(['course.orgUnit', 'term.branch']);
+
+        $programs = Program::query()
+            ->where('branch_id', $section->branch_id)
+            ->orderBy('title')
+            ->get(['id', 'title']);
+
+        $terms = Term::query()
+            ->where('branch_id', $section->branch_id)
+            ->orderByDesc('start_date')
+            ->get(['id', 'title', 'code']);
+
+        $studentOptions = User::query()
+            ->role('student')
+            ->where('branch_id', $section->branch_id)
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $student) => [
+                'id' => $student->id,
+                'name' => $student->name,
+                'email' => $student->email,
+            ])
+            ->values();
+
+        return Inertia::render('Admin/Sections/Roster', [
+            'section' => [
+                'id' => $section->id,
+                'code' => $section->section_code,
+                'capacity' => $section->capacity,
+                'waitlist_cap' => $section->waitlist_cap,
+                'status' => $section->status,
+                'course' => $section->course ? [
+                    'id' => $section->course->id,
+                    'code' => $section->course->code,
+                    'title' => $section->course->title,
+                ] : null,
+                'term' => $section->term ? [
+                    'id' => $section->term->id,
+                    'title' => $section->term->title,
+                    'code' => $section->term->code,
+                    'add_drop_start' => $section->term->add_drop_start?->toDateString(),
+                    'add_drop_end' => $section->term->add_drop_end?->toDateString(),
+                ] : null,
+            ],
+            'statusOptions' => SectionEnrollment::STATUSES,
+            'roleOptions' => SectionEnrollment::ROLES,
+            'programOptions' => $programs,
+            'termOptions' => $terms,
+            'studentOptions' => $studentOptions,
+            'routes' => [
+                'roster' => route('admin.sections.roster', $section),
+                'enroll' => route('admin.sections.enroll', $section),
+                'bulkEnroll' => route('admin.sections.enrollments.bulk', $section),
+                'drop' => 'admin.sections.enrollments.destroy',
+                'programEnrollments' => 'admin.programs.enrollments.store',
+            ],
+        ]);
     }
 
     public function edit(Request $request, Section $section): Response

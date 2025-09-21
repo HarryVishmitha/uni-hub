@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             CourseOutcomeSeeder::class,
             CoursePrerequisiteSeeder::class,
             TimetableSeeder::class,
+            EnrollmentSeeder::class,
         ]);
     }
 }

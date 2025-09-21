@@ -239,6 +239,9 @@ function SectionsIndex() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Link href={route('admin.sections.roster.manage', section.id)}>
+                          <SecondaryButton>Roster</SecondaryButton>
+                        </Link>
                         <Link href={route('admin.sections.edit', section.id)}>
                           <SecondaryButton>Edit</SecondaryButton>
                         </Link>
